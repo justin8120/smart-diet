@@ -26,6 +26,18 @@ from app.services import web_food_verifier
 
 
 CONFIGURATION_ERROR = "AI analysis service is not configured. Please set OPENAI_API_KEY."
+RATE_LIMIT_FALLBACK_WARNING = (
+    "Gemini API \u76ee\u524d\u8acb\u6c42\u904e\u591a\uff0c\u5df2\u6539\u7528"
+    "\u4fdd\u5b88\u898f\u5247\u5206\u6790\uff1b\u5be6\u969b\u71df\u990a\u4ecd\u9700"
+    "\u4ee5\u5e97\u5bb6\u6a19\u793a\u70ba\u6e96\u3002"
+)
+RATE_LIMIT_ERROR_DETAIL = "AI \u670d\u52d9\u76ee\u524d\u8acb\u6c42\u904e\u591a\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66\u3002"
+AUTH_ERROR_DETAIL = "AI \u670d\u52d9\u9a57\u8b49\u5931\u6557\uff0c\u8acb\u6aa2\u67e5 API key \u8a2d\u5b9a\u3002"
+TIMEOUT_ERROR_DETAIL = "AI \u5206\u6790\u903e\u6642\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66\u3002"
+JSON_ERROR_DETAIL = "AI \u56de\u50b3\u683c\u5f0f\u7570\u5e38\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66\u3002"
+AI_FAILURE_DETAIL = "AI \u5206\u6790\u66ab\u6642\u5931\u6557\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66\u6216\u88dc\u5145\u9910\u9ede\u540d\u7a31\u3002"
+INSUFFICIENT_DETAIL = "\u76ee\u524d\u8cc7\u8a0a\u4e0d\u8db3\uff0c\u8acb\u63d0\u4f9b\u66f4\u660e\u78ba\u7684\u9910\u9ede\u540d\u7a31\u3001\u5716\u7247\u6216\u9023\u7d50\u3002"
+FALLBACK_NUTRITION_NOTE = "\u6b64\u70ba\u4f9d\u9910\u9ede\u540d\u7a31\u8207\u5716\u7247\u5916\u89c0\u63a8\u4f30\uff0c\u975e\u7cbe\u6e96\u71df\u990a\u6a19\u793a\u3002"
 
 SOURCE_TYPES = {"text", "image", "url"}
 
@@ -254,21 +266,69 @@ def _safe_analyze(
         if source_type == "image" and image_url:
             return _analyze_image_with_verification(provider.name, text, image_url, image_bytes, media_type, text_hint)
         return _call_chat_completion(provider_name=provider.name, text=text, source_type=source_type, image_url=image_url)
-    except (
-        RateLimitError,
-        AuthenticationError,
-        BadRequestError,
-        APIError,
-        TimeoutError,
-        json.JSONDecodeError,
-        Exception,
-    ) as error:
+    except Exception as error:
         print(f"AI provider error ({provider.name}): {error}")
-        if fallback_enabled():
+        error_kind = _classify_ai_error(error)
+        if fallback_enabled() and error_kind == "rate_limit":
+            if source_type == "url":
+                return _with_analysis_notice(
+                    _uncertain_url_result(text, confidence=0.35),
+                    warning_message=RATE_LIMIT_FALLBACK_WARNING,
+                    nutrition_note=FALLBACK_NUTRITION_NOTE,
+                    confidence_cap=0.55,
+                )
+            return _fallback_result(
+                text,
+                source_type,
+                confidence=0.55,
+                text_hint=text_hint,
+                warning_message=RATE_LIMIT_FALLBACK_WARNING,
+                nutrition_note=FALLBACK_NUTRITION_NOTE,
+            )
+        if fallback_enabled() and error_kind in {"timeout", "json"}:
             if source_type == "url":
                 return _uncertain_url_result(text, confidence=0.35)
             return _fallback_result(text, source_type, confidence=0.45, text_hint=text_hint)
-        raise HTTPException(status_code=502, detail=f"AI provider error: {error}") from error
+        raise HTTPException(status_code=502, detail=_ai_error_detail(error_kind)) from error
+
+
+def _classify_ai_error(error: Exception) -> str:
+    response = getattr(error, "response", None)
+    status_code = getattr(error, "status_code", None) or getattr(response, "status_code", None)
+    message = str(error).lower()
+    if isinstance(error, RateLimitError) or status_code == 429:
+        return "rate_limit"
+    if any(token in message for token in ["429", "too many", "toomanyrequests", "resource_exhausted", "quota"]):
+        return "rate_limit"
+    if isinstance(error, AuthenticationError) or status_code in {401, 403}:
+        return "auth"
+    if any(token in message for token in ["unauthorized", "forbidden", "api key", "authentication"]):
+        return "auth"
+    if isinstance(error, (TimeoutError, httpx.TimeoutException)):
+        return "timeout"
+    if "timeout" in message or "timed out" in message:
+        return "timeout"
+    if isinstance(error, json.JSONDecodeError):
+        return "json"
+    if isinstance(error, BadRequestError) and any(token in message for token in ["insufficient", "not enough", "unclear"]):
+        return "insufficient"
+    if isinstance(error, APIError):
+        return "api"
+    return "unknown"
+
+
+def _ai_error_detail(error_kind: str) -> str:
+    if error_kind == "rate_limit":
+        return RATE_LIMIT_ERROR_DETAIL
+    if error_kind == "auth":
+        return AUTH_ERROR_DETAIL
+    if error_kind == "timeout":
+        return TIMEOUT_ERROR_DETAIL
+    if error_kind == "json":
+        return JSON_ERROR_DETAIL
+    if error_kind == "insufficient":
+        return INSUFFICIENT_DETAIL
+    return AI_FAILURE_DETAIL
 
 
 def _call_chat_completion(
@@ -332,6 +392,18 @@ def _analyze_image_with_verification(
         payload = _call_image_candidate_completion_compatible(provider_name, analysis_text, image_url, image_bytes, media_type)
     except Exception as error:
         print(f"Image candidate analysis failed ({provider_name}): {error}")
+        if fallback_enabled() and _classify_ai_error(error) == "rate_limit":
+            result = _fallback_result(
+                f"{text_hint or ''} {text}".strip(),
+                "image",
+                confidence=0.55,
+                text_hint=text_hint,
+                text_hint_info=hint_info,
+                warning_message=RATE_LIMIT_FALLBACK_WARNING,
+                nutrition_note=FALLBACK_NUTRITION_NOTE,
+            )
+            _log_image_validation(provider_name, "", result, validate_analysis_result(result), retry_happened, True)
+            return result
         try:
             direct_result = _call_chat_completion(provider_name, analysis_text, "image", image_url)
             issues = _image_validation_errors(direct_result, text)
@@ -342,6 +414,18 @@ def _analyze_image_with_verification(
                 return merged_result
         except Exception as direct_error:
             print(f"Direct image analysis failed ({provider_name}): {direct_error}")
+            if fallback_enabled() and _classify_ai_error(direct_error) == "rate_limit":
+                result = _fallback_result(
+                    f"{text_hint or ''} {text}".strip(),
+                    "image",
+                    confidence=0.55,
+                    text_hint=text_hint,
+                    text_hint_info=hint_info,
+                    warning_message=RATE_LIMIT_FALLBACK_WARNING,
+                    nutrition_note=FALLBACK_NUTRITION_NOTE,
+                )
+                _log_image_validation(provider_name, "", result, validate_analysis_result(result), retry_happened, True)
+                return result
         result = _fallback_result(text, "image", confidence=0.35, text_hint=text_hint, text_hint_info=hint_info)
         _log_image_validation(provider_name, "", result, validate_analysis_result(result), retry_happened, True)
         return result
@@ -381,7 +465,13 @@ def _analyze_image_with_verification(
 
     if issues:
         fallback_happened = True
-        result = _fallback_result(text, "image", confidence=0.35, text_hint=text_hint, text_hint_info=hint_info)
+        result = _fallback_result(
+            f"{text_hint or ''} {text}".strip(),
+            "image",
+            confidence=0.35,
+            text_hint=text_hint,
+            text_hint_info=hint_info,
+        )
         issues = _image_validation_errors(result, validation_context)
     _log_image_validation(provider_name, raw_name, result, issues, retry_happened, fallback_happened)
     return result
@@ -858,21 +948,49 @@ def _fallback_result(
     confidence: float | None = None,
     text_hint: str | None = None,
     text_hint_info: dict[str, Any] | None = None,
+    warning_message: str | None = None,
+    nutrition_note: str | None = None,
 ) -> MealAnalysisResult:
+    lookup_text = f"{text_hint or ''} {text}".strip()
+    known_result = _known_fallback_result(
+        lookup_text,
+        source_type,
+        confidence=confidence or 0.55,
+        warning_message=warning_message,
+        nutrition_note=nutrition_note,
+    )
+    if known_result:
+        return known_result
+
     normalized = text.lower()
     if source_type == "image":
         hint_info = text_hint_info or classify_text_hint(text_hint or "")
         image_context_result = _hinted_image_result(text, confidence=confidence or 0.68)
         if image_context_result:
             issues = _image_validation_errors(image_context_result, text)
-            return merge_image_result_with_text_hint(image_context_result, hint_info, issues)
+            return _with_analysis_notice(
+                merge_image_result_with_text_hint(image_context_result, hint_info, issues),
+                warning_message=warning_message,
+                nutrition_note=nutrition_note,
+                confidence_cap=confidence,
+            )
         if _is_packaged_dessert_hint(f"{text} {text_hint or ''}"):
-            return _packaged_dessert_result(source_type, confidence=confidence or 0.45)
+            return _with_analysis_notice(
+                _packaged_dessert_result(source_type, confidence=confidence or 0.45),
+                warning_message=warning_message,
+                nutrition_note=nutrition_note,
+                confidence_cap=confidence,
+            )
         if not _has_known_image_hint(text):
-            return merge_image_result_with_text_hint(
-                _uncertain_image_result(confidence or 0.35),
-                hint_info,
-                ["image context is uncertain"],
+            return _with_analysis_notice(
+                merge_image_result_with_text_hint(
+                    _uncertain_image_result(confidence or 0.35),
+                    hint_info,
+                    ["image context is uncertain"],
+                ),
+                warning_message=warning_message,
+                nutrition_note=nutrition_note,
+                confidence_cap=confidence,
             )
     meal_name = FALLBACK_MEAL_NAME
     meal_type = FALLBACK_MEAL_TYPE
@@ -885,15 +1003,15 @@ def _fallback_result(
     confidence_value = confidence or 0.55
 
     if _is_butadon_text(normalized):
-        return _butadon_result(source_type, confidence=confidence or 0.75)
+        return _with_analysis_notice(_butadon_result(source_type, confidence=confidence or 0.75), warning_message, nutrition_note, confidence)
     if OYAKODON in normalized or "oyakodon" in normalized:
-        return _oyakodon_result(source_type, confidence=confidence or 0.72)
+        return _with_analysis_notice(_oyakodon_result(source_type, confidence=confidence or 0.72), warning_message, nutrition_note, confidence)
     if _is_soup_dumpling_hint(normalized):
-        return _xiaolongbao_hint_result(source_type, confidence=confidence or 0.68)
+        return _with_analysis_notice(_xiaolongbao_hint_result(source_type, confidence=confidence or 0.68), warning_message, nutrition_note, confidence)
     if _is_watermelon_hint(normalized):
-        return _hint_result(WATERMELON, source_type, confidence=confidence or 0.68)
+        return _with_analysis_notice(_hint_result(WATERMELON, source_type, confidence=confidence or 0.68), warning_message, nutrition_note, confidence)
     if _is_packaged_dessert_hint(normalized):
-        return _packaged_dessert_result(source_type, confidence=confidence or 0.35)
+        return _with_analysis_notice(_packaged_dessert_result(source_type, confidence=confidence or 0.35), warning_message, nutrition_note, confidence)
 
     if SHRIMP_FRIED_RICE in normalized:
         meal_name = SHRIMP_FRIED_RICE
@@ -936,7 +1054,7 @@ def _fallback_result(
     if _has_any(normalized, ["\u82b1\u751f\u904e\u654f", "\u907f\u514d\u82b1\u751f", "\u4e0d\u8981\u82b1\u751f"]):
         allergens = _add_unique(allergens, ALLERGEN_PEANUT)
 
-    return normalize_and_enrich_result(
+    result = normalize_and_enrich_result(
         {
             "id": f"system-{uuid4()}",
             "mealName": normalize_meal_name(meal_name),
@@ -954,6 +1072,106 @@ def _fallback_result(
         },
         original_text=text,
     )
+    return _with_analysis_notice(result, warning_message, nutrition_note, confidence)
+
+
+def _with_analysis_notice(
+    result: MealAnalysisResult,
+    warning_message: str | None = None,
+    nutrition_note: str | None = None,
+    confidence_cap: float | None = None,
+) -> MealAnalysisResult:
+    updates: dict[str, Any] = {}
+    if warning_message:
+        updates["warningMessage"] = warning_message
+    if nutrition_note:
+        updates["nutritionNote"] = nutrition_note
+    if confidence_cap is not None:
+        updates["confidence"] = min(result.confidence, max(0, min(confidence_cap, 1)))
+    return result.model_copy(update=updates) if updates else result
+
+
+def _known_fallback_result(
+    text: str,
+    source_type: str,
+    confidence: float,
+    warning_message: str | None = None,
+    nutrition_note: str | None = None,
+) -> MealAnalysisResult | None:
+    normalized = normalize_meal_name(text)
+    lower = normalized.lower()
+    if "\u96de\u8089\u98ef" in normalized:
+        payload = {
+            "mealName": "\u96de\u8089\u98ef",
+            "mealType": "\u98ef\u985e / \u53f0\u5f0f\u5c0f\u5403",
+            "estimatedCalories": 550,
+            "estimatedProtein": 25,
+            "tags": ["\u98ef\u985e", "\u53f0\u5f0f", "\u9ad8\u78b3\u6c34", "\u4e00\u822c\u9910\u9ede"],
+            "mainIngredients": ["\u767d\u98ef", "\u96de\u8089", "\u91ac\u6c41"],
+            "allergens": [],
+            "recommendationReason": (
+                "\u96de\u8089\u98ef\u4ee5\u767d\u98ef\u8207\u96de\u8089\u70ba\u4e3b\uff0c"
+                "\u80fd\u63d0\u4f9b\u78b3\u6c34\u5316\u5408\u7269\u8207\u86cb\u767d\u8cea\uff0c"
+                "\u4f46\u91ac\u6c41\u8207\u6cb9\u8102\u53ef\u80fd\u63d0\u9ad8\u71b1\u91cf\u8207\u9209\u542b\u91cf\u3002"
+            ),
+            "confidence": min(confidence, 0.55),
+        }
+        return _fallback_payload_result(payload, source_type, warning_message, nutrition_note, original_text="\u96de\u8089\u98ef")
+    if "\u9bad\u9b5a\u6c99\u62c9" in normalized:
+        payload = {
+            "mealName": "\u9bad\u9b5a\u6c99\u62c9",
+            "mealType": "\u6c99\u62c9 / \u8f15\u98df",
+            "estimatedCalories": 420,
+            "estimatedProtein": 28,
+            "tags": ["\u6c99\u62c9", "\u8f15\u98df", "\u9ad8\u86cb\u767d", "\u5065\u5eb7\u9910"],
+            "mainIngredients": ["\u9bad\u9b5a", "\u751f\u83dc", "\u852c\u83dc"],
+            "allergens": ["\u9b5a"],
+            "recommendationReason": "\u9bad\u9b5a\u6c99\u62c9\u4ee5\u9b5a\u985e\u86cb\u767d\u8207\u852c\u83dc\u70ba\u4e3b\uff0c\u6574\u9ad4\u8f03\u6e05\u723d\uff0c\u4f46\u91ac\u6599\u53ef\u80fd\u589e\u52a0\u71b1\u91cf\u8207\u9209\u542b\u91cf\u3002",
+            "confidence": min(confidence, 0.55),
+        }
+        return _fallback_payload_result(payload, source_type, warning_message, nutrition_note, original_text="\u9bad\u9b5a\u6c99\u62c9")
+    if "\u96de\u80f8\u8089\u5065\u5eb7\u9910" in normalized or ("\u96de\u80f8\u8089" in normalized and "\u5065\u5eb7\u9910" in normalized):
+        payload = {
+            "mealName": "\u96de\u80f8\u8089\u5065\u5eb7\u9910",
+            "mealType": "\u5065\u5eb7\u9910 / \u9910\u76d2",
+            "estimatedCalories": 480,
+            "estimatedProtein": 38,
+            "tags": ["\u5065\u5eb7\u9910", "\u9ad8\u86cb\u767d", "\u4f4e\u8102", "\u9910\u76d2"],
+            "mainIngredients": ["\u96de\u80f8\u8089", "\u852c\u83dc", "\u7cd9\u7c73"],
+            "allergens": [],
+            "recommendationReason": "\u96de\u80f8\u8089\u5065\u5eb7\u9910\u901a\u5e38\u4ee5\u7626\u8089\u86cb\u767d\u3001\u852c\u83dc\u8207\u9069\u91cf\u4e3b\u98df\u642d\u914d\uff0c\u9069\u5408\u9700\u8981\u63a7\u5236\u6cb9\u8102\u8207\u88dc\u5145\u86cb\u767d\u8cea\u7684\u60c5\u5883\u3002",
+            "confidence": min(confidence, 0.55),
+        }
+        return _fallback_payload_result(payload, source_type, warning_message, nutrition_note, original_text="\u96de\u80f8\u8089\u5065\u5eb7\u9910")
+    if _is_packaged_dessert_hint(lower):
+        return _with_analysis_notice(
+            _packaged_dessert_result(source_type, confidence=min(confidence, 0.45)),
+            warning_message,
+            nutrition_note,
+            confidence_cap=min(confidence, 0.45),
+        )
+    return None
+
+
+def _fallback_payload_result(
+    payload: dict[str, Any],
+    source_type: str,
+    warning_message: str | None,
+    nutrition_note: str | None,
+    original_text: str,
+) -> MealAnalysisResult:
+    payload = {
+        "id": f"system-{uuid4()}",
+        **payload,
+        "sourceType": _source_type(source_type),
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "isAiGenerated": True,
+    }
+    if warning_message:
+        payload["warningMessage"] = warning_message
+    if nutrition_note:
+        payload["nutritionNote"] = nutrition_note
+    return normalize_and_enrich_result(payload, original_text=original_text)
 
 
 def _has_any(text: str, keywords: list[str]) -> bool:

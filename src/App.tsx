@@ -360,6 +360,25 @@ function isLikelyFoodDescription(text: string) {
   ].some((term) => normalized.includes(term.toLowerCase()))
 }
 
+function analysisErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : ""
+  const normalized = message.toLowerCase()
+  if (
+    normalized.includes("429") ||
+    normalized.includes("too many") ||
+    normalized.includes("toomanyrequests") ||
+    normalized.includes("resource_exhausted") ||
+    normalized.includes("quota") ||
+    message.includes("請求過多")
+  ) {
+    return "AI 服務目前請求過多，已改用保守規則分析，或請稍後再試。"
+  }
+  if (message.includes("無法判斷") || message.includes("資訊不足") || message.includes("更明確")) {
+    return "目前資訊不足，請提供更明確的餐點名稱、圖片或連結。"
+  }
+  return "AI 分析暫時失敗，請稍後再試或補充餐點名稱。"
+}
+
 function loadStoredList(key: string) {
   try {
     const payload = window.localStorage.getItem(key)
@@ -1208,7 +1227,7 @@ export function App() {
       setAnalysisResult(enrichedResult)
       setAnalysisMessage("AI 分析完成，可加入餐點資料集。")
     } catch (error) {
-      setAnalysisError(error instanceof Error ? error.message : "AI 分析失敗，請稍後再試。")
+      setAnalysisError(analysisErrorMessage(error))
     } finally {
       setIsAnalyzing(false)
     }
@@ -1217,7 +1236,7 @@ export function App() {
   const handleAddAnalysis = async () => {
     if (!analysisResult) return
     if (!isJoinableMeal(analysisResult)) {
-      setAnalysisError("目前資訊不足，請至少提供餐點名稱、圖片或連結。")
+      setAnalysisError("目前資訊不足，請提供更明確的餐點名稱、圖片或連結。")
       return
     }
 
@@ -1433,7 +1452,7 @@ export function App() {
             {analysisError ? <p className="error-message">{analysisError}</p> : null}
 
             {analysisResult && shouldShowAnalysisError(analysisResult) ? (
-              <p className="error-message">目前資訊不足，請至少提供餐點名稱、圖片或連結。</p>
+              <p className="error-message">目前資訊不足，請提供更明確的餐點名稱、圖片或連結。</p>
             ) : null}
 
             {analysisResult && isJoinableMeal(analysisResult) ? (

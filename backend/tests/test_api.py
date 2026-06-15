@@ -1583,6 +1583,85 @@ def test_meaningless_text_is_rejected_without_health_meal_fallback(monkeypatch):
     assert response.json()["detail"] == "無法判斷此內容是否為食物，請輸入餐點名稱、食材、圖片或餐點連結。"
 
 
+def test_gemini_rate_limit_text_uses_chicken_rice_fallback(monkeypatch):
+    from app.services import openai_meal_analyzer
+
+    monkeypatch.setenv("AI_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("AI_FALLBACK_ENABLED", "true")
+
+    def fail_chat_completion(*args, **kwargs):
+        raise RuntimeError("429 TooManyRequests: RESOURCE_EXHAUSTED")
+
+    monkeypatch.setattr(openai_meal_analyzer, "_call_chat_completion", fail_chat_completion)
+
+    response = client.post("/api/analyze/text", json={"description": "雞肉飯"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mealName"] == "雞肉飯"
+    assert payload["mealType"] == "飯類 / 台式小吃"
+    assert payload["estimatedCalories"] == 550
+    assert payload["estimatedProtein"] == 25
+    assert payload["tags"] == ["飯類", "台式", "高碳水", "一般餐點"]
+    assert payload["mainIngredients"] == ["白飯", "雞肉", "醬汁"]
+    assert payload["confidence"] == 0.55
+    assert "Gemini API 目前請求過多" in payload["warningMessage"]
+    assert payload["nutritionNote"] == "此為依餐點名稱與圖片外觀推估，非精準營養標示。"
+
+
+def test_gemini_rate_limit_image_with_text_hint_uses_text_fallback(monkeypatch):
+    from app.services import openai_meal_analyzer
+
+    monkeypatch.setenv("AI_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("AI_FALLBACK_ENABLED", "true")
+
+    def fail_candidate_completion(*args, **kwargs):
+        raise RuntimeError("429 TooManyRequests: RESOURCE_EXHAUSTED")
+
+    monkeypatch.setattr(
+        openai_meal_analyzer,
+        "_call_image_candidate_completion_compatible",
+        fail_candidate_completion,
+    )
+
+    response = client.post(
+        "/api/analyze/image",
+        files={"file": ("images.jpg", b"fake-image", "image/jpeg")},
+        data={"text": "雞肉飯"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mealName"] == "雞肉飯"
+    assert payload["sourceType"] == "image"
+    assert payload["confidence"] == 0.55
+    assert "Gemini API 目前請求過多" in payload["warningMessage"]
+
+
+def test_gemini_rate_limit_brand_text_uses_dessert_fallback(monkeypatch):
+    from app.services import openai_meal_analyzer
+
+    monkeypatch.setenv("AI_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("AI_FALLBACK_ENABLED", "true")
+
+    def fail_chat_completion(*args, **kwargs):
+        raise RuntimeError("429 TooManyRequests: RESOURCE_EXHAUSTED")
+
+    monkeypatch.setattr(openai_meal_analyzer, "_call_chat_completion", fail_chat_completion)
+
+    response = client.post("/api/analyze/text", json={"description": "杜老爺"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mealName"] == "杜老爺冰品"
+    assert payload["mealType"] == "冰品 / 甜點"
+    assert payload["confidence"] <= 0.45
+    assert "Gemini API 目前請求過多" in payload["warningMessage"]
+
+
 def test_fallback_response_is_ascii_escaped_json(monkeypatch):
     monkeypatch.setenv("AI_PROVIDER", "mock")
     monkeypatch.setenv("AI_FALLBACK_ENABLED", "true")

@@ -138,6 +138,26 @@ const leanChickenMeal: BackendMeal = {
   isAiGenerated: true,
 }
 
+const chickenRiceRateLimitFallback: BackendMeal = {
+  id: "fallback-chicken-rice",
+  mealName: "雞肉飯",
+  mealType: "飯類 / 台式小吃",
+  estimatedCalories: 550,
+  estimatedProtein: 25,
+  tags: ["飯類", "台式", "高碳水", "一般餐點"],
+  mainIngredients: ["白飯", "雞肉", "醬汁"],
+  allergens: [],
+  recommendationReason:
+    "雞肉飯以白飯與雞肉為主，能提供碳水化合物與蛋白質，但醬汁與油脂可能提高熱量與鈉含量。",
+  confidence: 0.55,
+  sourceType: "text",
+  createdAt: "2026-06-16T00:00:00+00:00",
+  isAiGenerated: true,
+  warningMessage:
+    "Gemini API 目前請求過多，已改用保守規則分析；實際營養仍需以店家標示為準。",
+  nutritionNote: "此為依餐點名稱與圖片外觀推估，非精準營養標示。",
+}
+
 function jsonResponse(payload: unknown, init?: ResponseInit) {
   return new Response(JSON.stringify(payload), {
     status: 200,
@@ -449,7 +469,7 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "AI 分析餐點" }))
 
     expect(
-      await screen.findByText("目前資訊不足，請至少提供餐點名稱、圖片或連結。"),
+      await screen.findByText("目前資訊不足，請提供更明確的餐點名稱、圖片或連結。"),
     ).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "加入餐點資料集" })).not.toBeInTheDocument()
   })
@@ -558,7 +578,7 @@ describe("App", () => {
 
     expect(await screen.findByText("AI 分析完成，可加入餐點資料集。")).toBeInTheDocument()
     expect(
-      screen.queryByText("目前資訊不足，請至少提供餐點名稱、圖片或連結。"),
+      screen.queryByText("目前資訊不足，請提供更明確的餐點名稱、圖片或連結。"),
     ).not.toBeInTheDocument()
     expect(screen.getAllByText(/包裝標示或店家資料為準/).length).toBeGreaterThan(0)
     expect(screen.getByRole("button", { name: "加入餐點資料集" })).toBeInTheDocument()
@@ -709,6 +729,38 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "AI 分析餐點" }))
 
     expect(await screen.findByLabelText("AI 分析結果")).toBeInTheDocument()
+  })
+
+  test("shows Gemini rate-limit fallback warning while keeping the analysis result", async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith("/api/health")) {
+        return jsonResponse({
+          status: "ok",
+          aiProvider: "gemini",
+          aiConfigured: true,
+          model: "gemini-2.5-flash-lite",
+          fallbackEnabled: true,
+        })
+      }
+      if (url.endsWith("/api/meals")) return jsonResponse(backendMeals)
+      if (url.endsWith("/api/analyze/text")) return jsonResponse(chickenRiceRateLimitFallback)
+      return jsonResponse({ detail: "Not found" }, { status: 404 })
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    render(<App />)
+
+    await user.type(screen.getByLabelText("文字描述"), "雞肉飯")
+    await user.click(screen.getByRole("button", { name: "AI 分析餐點" }))
+
+    const analysis = await screen.findByLabelText("AI 分析結果")
+    expect(analysis).toBeInTheDocument()
+    expect(within(analysis).getByText("雞肉飯")).toBeInTheDocument()
+    expect(screen.getAllByText(/Gemini API 目前請求過多/).length).toBeGreaterThan(0)
+    expect(
+      screen.queryByText("目前資訊不足，請提供更明確的餐點名稱、圖片或連結。"),
+    ).not.toBeInTheDocument()
   })
 
   test("shows explicit loading state while AI analysis is running", async () => {
