@@ -73,3 +73,4 @@ class NearbyPlace(BaseModel):
 class NearbyPlacesResponse(BaseModel):
     query: str
     places: list[NearbyPlace]
+    message: str | None = None

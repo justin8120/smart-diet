@@ -67,6 +67,7 @@ export type NearbyPlace = {
 export type NearbyPlacesResponse = {
   query: string
   places: NearbyPlace[]
+  message?: string | null
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {

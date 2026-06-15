@@ -5,7 +5,7 @@ import types as module_types
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.models import MealAnalysisResult
+from app.models import MealAnalysisResult, NearbyPlace
 from app.services.ai_provider import normalize_meal_name
 from app.services.nutrition_enricher import (
     calibrate_confidence,
@@ -15,7 +15,7 @@ from app.services.nutrition_enricher import (
     validate_analysis_result,
 )
 from app.services.openai_meal_analyzer import classify_text_hint
-from app.services.nearby_places import build_nearby_query
+from app.services.nearby_places import _rank_relevant_places, build_nearby_query
 from app.services.web_food_verifier import rerank_food_candidates
 from app.services import web_food_verifier
 from app.storage import meals_store
@@ -67,9 +67,64 @@ def test_nearby_places_query_builder():
     )
     assert (
         build_nearby_query("\u675c\u8001\u723a\u51b0\u54c1", "\u51b0\u54c1 / \u751c\u9ede", ["\u9ad8\u7cd6"])
-        == "\u4fbf\u5229\u5546\u5e97 \u8d85\u5e02 \u51b0\u54c1"
+        == "\u51b0\u54c1 \u751c\u9ede \u51b0\u6dc7\u6dcb \u4fbf\u5229\u5546\u5e97 \u8d85\u5e02"
     )
-    assert build_nearby_query("\u51b0\u6dc7\u6dcb", "\u51b0\u54c1", ["\u9ad8\u7cd6"]) == "\u51b0\u54c1 \u751c\u9ede \u51b0\u6dc7\u6dcb"
+    assert (
+        build_nearby_query("\u51b0\u6dc7\u6dcb", "\u51b0\u54c1", ["\u9ad8\u7cd6"])
+        == "\u51b0\u54c1 \u751c\u9ede \u51b0\u6dc7\u6dcb \u4fbf\u5229\u5546\u5e97 \u8d85\u5e02"
+    )
+
+
+def test_nearby_places_query_builder_prioritizes_soup_dumplings_over_generic_tags():
+    assert build_nearby_query("湯包", "中式點心", ["中式", "點心", "麵食"]) == "湯包 小籠包 包子"
+
+
+def test_nearby_places_query_builder_prioritizes_donburi():
+    assert build_nearby_query("豚丼", "日式", ["日式", "丼飯"]) == "豚丼 日式丼飯 丼飯 日式料理"
+
+
+def test_nearby_places_query_builder_prioritizes_ice_cream_context():
+    query = build_nearby_query("杜老爺", "冰品", ["冰品"])
+
+    assert query == "冰品 甜點 冰淇淋 便利商店 超市"
+
+
+def test_nearby_places_query_builder_prioritizes_chicken_breast_healthy_meal():
+    assert build_nearby_query("雞胸肉健康餐", "健康餐", ["高蛋白"]) == "健康餐 雞胸肉餐盒"
+
+
+def test_nearby_places_query_builder_does_not_replace_meal_name_with_generic_tags():
+    query = build_nearby_query("湯包", "餐廳", ["中式", "點心", "麵食", "美食"])
+
+    assert query == "湯包 小籠包 包子"
+    assert query != "中式 點心 麵食"
+
+
+def test_nearby_places_relevance_filters_noodle_results_for_soup_dumplings():
+    ranked_places = _rank_relevant_places(
+        [
+            NearbyPlace(
+                name="老張牛肉麵",
+                address="台北市測試路 1 號",
+                rating=4.2,
+                distanceMeters=120,
+                types=["restaurant", "food"],
+                mapUrl="https://maps.example/noodle",
+            ),
+            NearbyPlace(
+                name="阿明湯包小籠包",
+                address="台北市測試路 2 號",
+                rating=4.5,
+                distanceMeters=80,
+                types=["restaurant", "meal_takeaway"],
+                mapUrl="https://maps.example/dumpling",
+            ),
+        ],
+        "湯包",
+        "湯包 小籠包 包子",
+    )
+
+    assert [place.name for place in ranked_places] == ["阿明湯包小籠包"]
 
 
 def test_nearby_places_requires_google_api_key(monkeypatch):
