@@ -16,8 +16,10 @@ import {
   analyzeUrl,
   fetchHealth,
   fetchMeals,
+  fetchNearbyPlaces,
   recommendMeals,
   type BackendHealth,
+  type NearbyPlace,
 } from "./api"
 import {
   allergens,
@@ -574,6 +576,29 @@ type MockNearbyPlace = {
   types: string[]
 }
 
+type NearbyMode = "mock" | "google"
+
+type NearbyPanelState = {
+  status: "idle" | "loading" | "success" | "error"
+  places: NearbyPlace[]
+  message: string
+}
+
+let runtimeEnvOverride: Record<string, string | undefined> | null = null
+
+export function __setNearbyRuntimeEnvForTests(env: Record<string, string | undefined> | null) {
+  runtimeEnvOverride = env
+}
+
+function readEnv(name: "VITE_NEARBY_MODE" | "VITE_API_BASE_URL") {
+  if (runtimeEnvOverride?.[name] !== undefined) return runtimeEnvOverride[name]
+  return import.meta.env[name]
+}
+
+const nearbyMode = (): NearbyMode => (readEnv("VITE_NEARBY_MODE") === "google" ? "google" : "mock")
+
+const configuredApiBaseUrl = () => readEnv("VITE_API_BASE_URL")?.trim() ?? ""
+
 function isDessertNearbyMeal(meal: Meal) {
   const profile = [meal.name, meal.type, ...meal.tags].join(" ")
   return ["冰品", "甜點", "高糖", "杜老爺"].some((term) => profile.includes(term))
@@ -653,8 +678,123 @@ function MockNearbyPanel({ meal }: { meal: Meal }) {
   )
 }
 
+function GoogleNearbyPanel({ state }: { state: NearbyPanelState }) {
+  if (state.status === "loading") {
+    return (
+      <div className="mock-nearby-panel" aria-live="polite">
+        <p className="nearby-message">正在取得附近店家...</p>
+      </div>
+    )
+  }
+
+  if (state.status === "error") {
+    return (
+      <div className="mock-nearby-panel" aria-live="polite">
+        <p className="nearby-message">{state.message}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mock-nearby-panel" aria-live="polite">
+      <div>
+        <h4>附近類似店家</h4>
+        <ol className="mock-place-list">
+          {state.places.map((place) => (
+            <li key={`${place.name}-${place.mapUrl}`}>
+              <strong>{place.name}</strong>
+              <span>距離：{place.distanceMeters ?? "未知"}m</span>
+              <span>評分：{place.rating ?? "暫無評分"}</span>
+              <span>地址：{place.address}</span>
+              <span>類型：{place.types.join(" / ")}</span>
+              <a className="map-button" href={place.mapUrl} target="_blank" rel="noreferrer">
+                在 Google 地圖查看
+              </a>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  )
+}
+
+function getCurrentPosition(): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject)
+  })
+}
+
 function MealCard({ meal }: { meal: Meal }) {
-  const [showMockNearby, setShowMockNearby] = useState(false)
+  const [showNearby, setShowNearby] = useState(false)
+  const [nearbyState, setNearbyState] = useState<NearbyPanelState>({
+    status: "idle",
+    places: [],
+    message: "",
+  })
+
+  async function handleNearbyClick() {
+    if (showNearby) {
+      setShowNearby(false)
+      return
+    }
+
+    setShowNearby(true)
+
+    if (nearbyMode() === "mock") return
+
+    if (!configuredApiBaseUrl()) {
+      setNearbyState({
+        status: "error",
+        places: [],
+        message: "尚未設定後端 API 網址",
+      })
+      return
+    }
+
+    if (!navigator.geolocation) {
+      setNearbyState({
+        status: "error",
+        places: [],
+        message: "啟用定位以查看附近類似店家",
+      })
+      return
+    }
+
+    setNearbyState({ status: "loading", places: [], message: "" })
+
+    try {
+      const position = await getCurrentPosition()
+      const sourceMeal = meal as Meal & { mealName?: string; mealType?: string }
+      const response = await fetchNearbyPlaces({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        mealName: sourceMeal.mealName ?? meal.name,
+        mealType: sourceMeal.mealType ?? meal.type,
+        tags: meal.tags,
+        radiusMeters: 1500,
+      })
+      setNearbyState({
+        status: "success",
+        places: response.places,
+        message: "",
+      })
+    } catch (error) {
+      const geolocationError = error as Partial<GeolocationPositionError>
+      const isGeolocationError =
+        geolocationError.code === 1 ||
+        geolocationError.code === 2 ||
+        geolocationError.code === 3 ||
+        (typeof GeolocationPositionError !== "undefined" &&
+          error instanceof GeolocationPositionError)
+      setNearbyState({
+        status: "error",
+        places: [],
+        message: isGeolocationError
+          ? "啟用定位以查看附近類似店家"
+          : "目前無法取得附近店家，請稍後再試",
+      })
+    }
+  }
 
   return (
     <article className="meal-card">
@@ -708,11 +848,12 @@ function MealCard({ meal }: { meal: Meal }) {
       <button
         className="utility-button nearby-toggle-button"
         type="button"
-        onClick={() => setShowMockNearby((current) => !current)}
+        onClick={handleNearbyClick}
       >
         查看附近店家
       </button>
-      {showMockNearby ? <MockNearbyPanel meal={meal} /> : null}
+      {showNearby && nearbyMode() === "mock" ? <MockNearbyPanel meal={meal} /> : null}
+      {showNearby && nearbyMode() === "google" ? <GoogleNearbyPanel state={nearbyState} /> : null}
     </article>
   )
 }

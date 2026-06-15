@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
-import { App } from "./App"
+import { App, __setNearbyRuntimeEnvForTests } from "./App"
 import { backendMealToMeal, inferGoals, type BackendMeal } from "./api"
 
 const backendMeals: BackendMeal[] = [
@@ -206,6 +206,11 @@ describe("App", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+    __setNearbyRuntimeEnvForTests(null)
+    delete import.meta.env.VITE_NEARBY_MODE
+    delete import.meta.env.VITE_API_BASE_URL
+    delete (navigator as { geolocation?: Geolocation }).geolocation
     window.localStorage.clear()
   })
 
@@ -858,7 +863,12 @@ describe("App", () => {
   test("expands and collapses mock nearby places on an individual meal card", async () => {
     const user = userEvent.setup()
     const fetchMock = vi.fn(mockOnlineApi())
+    const getCurrentPosition = vi.fn()
     vi.stubGlobal("fetch", fetchMock)
+    Object.defineProperty(navigator, "geolocation", {
+      value: { getCurrentPosition },
+      configurable: true,
+    })
     render(<App />)
 
     await screen.findByText(/Provider/)
@@ -877,9 +887,132 @@ describe("App", () => {
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).endsWith("/api/nearby-places")),
     ).toBe(false)
+    expect(getCurrentPosition).not.toHaveBeenCalled()
 
     await user.click(buttons[0])
     expect(screen.queryByText(healthyStoreName)).not.toBeInTheDocument()
+  })
+
+  test("google nearby mode asks for geolocation", async () => {
+    const user = userEvent.setup()
+    const getCurrentPosition = vi.fn()
+    __setNearbyRuntimeEnvForTests({
+      VITE_NEARBY_MODE: "google",
+      VITE_API_BASE_URL: "https://smart-diet-api.onrender.com",
+    })
+    Object.defineProperty(navigator, "geolocation", {
+      value: { getCurrentPosition },
+      configurable: true,
+    })
+    render(<App />)
+
+    await screen.findByText(/Provider/)
+    const buttons = await screen.findAllByRole("button", {
+      name: "\u67e5\u770b\u9644\u8fd1\u5e97\u5bb6",
+    })
+
+    await user.click(buttons[0])
+
+    expect(getCurrentPosition).toHaveBeenCalled()
+  })
+
+  test("google nearby mode calls nearby places API with location and meal context", async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(mockOnlineApi())
+    const getCurrentPosition = vi.fn((success: PositionCallback) =>
+      success({
+        coords: {
+          latitude: 25.033,
+          longitude: 121.5654,
+          accuracy: 10,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+      } as GeolocationPosition),
+    )
+    __setNearbyRuntimeEnvForTests({
+      VITE_NEARBY_MODE: "google",
+      VITE_API_BASE_URL: "https://smart-diet-api.onrender.com",
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    Object.defineProperty(navigator, "geolocation", {
+      value: { getCurrentPosition },
+      configurable: true,
+    })
+    render(<App />)
+
+    await screen.findByText(/Provider/)
+    const buttons = await screen.findAllByRole("button", {
+      name: "\u67e5\u770b\u9644\u8fd1\u5e97\u5bb6",
+    })
+
+    await user.click(buttons[0])
+
+    const nearbyCall = await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([input]) =>
+        String(input).endsWith("/api/nearby-places"),
+      )
+      expect(call).toBeTruthy()
+      return call
+    })
+    const body = JSON.parse(String(nearbyCall?.[1]?.body))
+
+    expect(body).toMatchObject({
+      lat: 25.033,
+      lng: 121.5654,
+      radiusMeters: 1500,
+    })
+    expect(body.mealName).toBeTruthy()
+    expect(body.mealType).toBeTruthy()
+    expect(body.tags).toEqual(expect.any(Array))
+    expect(
+      screen.queryByText(/\u6b63\u5728\u6a21\u64ec\u67e5\u8a62 Google Places/),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText("\u6e2c\u8a66\u5065\u5eb7\u9910\u5e97")).not.toBeInTheDocument()
+    expect(await screen.findByText(/restaurant \/ food/)).toBeInTheDocument()
+  })
+
+  test("google nearby mode shows a location prompt when geolocation is denied", async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(mockOnlineApi())
+    const getCurrentPosition = vi.fn((_success: PositionCallback, error: PositionErrorCallback) =>
+      error({
+        code: 1,
+        message: "denied",
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+      }),
+    )
+    __setNearbyRuntimeEnvForTests({
+      VITE_NEARBY_MODE: "google",
+      VITE_API_BASE_URL: "https://smart-diet-api.onrender.com",
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    Object.defineProperty(navigator, "geolocation", {
+      value: { getCurrentPosition },
+      configurable: true,
+    })
+    render(<App />)
+
+    await screen.findByText(/Provider/)
+    const buttons = await screen.findAllByRole("button", {
+      name: "\u67e5\u770b\u9644\u8fd1\u5e97\u5bb6",
+    })
+
+    await user.click(buttons[0])
+
+    expect(
+      await screen.findByText(
+        "\u555f\u7528\u5b9a\u4f4d\u4ee5\u67e5\u770b\u9644\u8fd1\u985e\u4f3c\u5e97\u5bb6",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).endsWith("/api/nearby-places")),
+    ).toBe(false)
   })
 
   test("uses ice cream mock places for dessert meal cards", async () => {
