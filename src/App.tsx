@@ -595,6 +595,9 @@ function readEnv(name: "VITE_NEARBY_MODE" | "VITE_API_BASE_URL") {
   return import.meta.env[name]
 }
 
+console.info("Nearby mode:", import.meta.env.VITE_NEARBY_MODE)
+console.info("API base URL:", import.meta.env.VITE_API_BASE_URL)
+
 const nearbyMode = (): NearbyMode => (readEnv("VITE_NEARBY_MODE") === "google" ? "google" : "mock")
 
 const configuredApiBaseUrl = () => readEnv("VITE_API_BASE_URL")?.trim() ?? ""

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -37,11 +38,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check Vite env
+        run: |
+          echo "VITE_API_BASE_URL=$VITE_API_BASE_URL"
+          echo "VITE_NEARBY_MODE=$VITE_NEARBY_MODE"
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_NEARBY_MODE: ${{ vars.VITE_NEARBY_MODE }}
+
       - name: Build for GitHub Pages
         run: npm run build
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_NEARBY_MODE: ${{ vars.VITE_NEARBY_MODE }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
