@@ -167,8 +167,9 @@ def save_meals(meals: list[MealAnalysisResult]) -> None:
 
 
 def add_meal(meal: MealAnalysisResult) -> tuple[MealAnalysisResult, str]:
-    if not is_complete_meal(meal):
-        raise ValueError("\u6b64\u9910\u9ede\u8cc7\u6599\u4e0d\u5b8c\u6574\uff0c\u8acb\u88dc\u5145\u9910\u9ede\u540d\u7a31\u6216\u4e3b\u8981\u98df\u6750\u5f8c\u518d\u52a0\u5165\u8cc7\u6599\u96c6\u3002")
+    validation_error = meal_storage_validation_error(meal)
+    if validation_error:
+        raise ValueError(validation_error)
 
     _ensure_data_file()
     with _lock:
@@ -357,26 +358,34 @@ def _term_matches_food_text(food_text: str, term: str) -> bool:
 
 
 def is_complete_meal(meal: MealAnalysisResult) -> bool:
+    return meal_storage_validation_error(meal) is None
+
+
+def meal_storage_validation_error(meal: MealAnalysisResult) -> str | None:
     if not meal.mealName.strip():
-        return False
+        return "餐點名稱不足"
+    if meal.mealName.strip() in {"餐點", "食物", "料理", "綜合餐", "主餐", "系統辨識餐點"}:
+        return "餐點名稱過於籠統，請提供明確名稱"
     if not meal.mealType.strip():
-        return False
+        return "餐點類型不足"
     if meal.estimatedCalories <= 0 and meal.mealType != "\u98f2\u54c1":
-        return False
+        return "熱量不是有效數值"
     if meal.estimatedProtein < 0:
-        return False
+        return "蛋白質不是有效數值"
     if not meal.tags:
-        return False
+        return "缺少餐點標籤"
     allows_limited_ingredients = bool((meal.warningMessage or "").strip() or (meal.nutritionNote or "").strip())
     if not meal.mainIngredients and not allows_limited_ingredients:
-        return False
+        return "缺少主要食材"
     if any(_has_invalid_ingredient_token(item) for item in meal.mainIngredients):
-        return False
+        return "缺少主要食材"
     reason = meal.recommendationReason.strip()
     if not reason or reason in GENERIC_REASON_TEMPLATES:
-        return False
+        return "推薦原因不完整"
     reason_lower = reason.lower()
-    return not any(token.lower() in reason_lower for token in FORBIDDEN_ENGINEERING_TOKENS)
+    if any(token.lower() in reason_lower for token in FORBIDDEN_ENGINEERING_TOKENS):
+        return "推薦原因不完整"
+    return None
 
 
 def _has_invalid_ingredient_token(value: str) -> bool:

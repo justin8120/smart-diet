@@ -302,7 +302,7 @@ async function main() {
     assert(desktop.metrics[0] !== "載入中", "Metrics remained stuck in loading state")
     assert(desktop.aiHeading === "AI 餐點分析與資料集擴充", "AI analysis section was not rendered")
     const hasBackendData = Number.parseInt(desktop.metrics[0], 10) > 9
-    const hasOfflineState = desktop.metrics[0].includes("離線示範")
+    const hasOfflineState = desktop.metrics[0] === "無法取得"
     assert(
       hasBackendData || hasOfflineState,
       `Backend state was unclear: ${desktop.metrics.join(",")}`,

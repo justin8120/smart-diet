@@ -78,11 +78,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
-    const message =
-      typeof payload?.detail === "string"
-        ? payload.detail
-        : "AI 後端尚未啟動，請先啟動 FastAPI server。"
-    throw new ApiRequestError(response.status, message)
+    const message = extractApiErrorMessage(payload)
+    throw new ApiRequestError(
+      response.status,
+      message || "AI 後端尚未啟動，請先啟動 FastAPI server。",
+      payload,
+    )
   }
 
   return response.json() as Promise<T>
@@ -92,10 +93,36 @@ export class ApiRequestError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    readonly responseBody?: unknown,
   ) {
     super(message)
     this.name = "ApiRequestError"
   }
+}
+
+function extractApiErrorMessage(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return ""
+  const body = payload as Record<string, unknown>
+  for (const key of ["detail", "message", "error"]) {
+    const value = body[key]
+    if (typeof value === "string" && value.trim()) return value.trim()
+    if (Array.isArray(value)) {
+      const issue = value.find((item) => item && typeof item === "object") as
+        | Record<string, unknown>
+        | undefined
+      if (!issue) continue
+      const location = Array.isArray(issue.loc) ? issue.loc.map(String).join(".") : ""
+      const type = String(issue.type ?? "")
+      if (location.includes("mainIngredients")) return "缺少主要食材"
+      if (location.includes("estimatedCalories")) return "熱量不是有效數值"
+      if (location.includes("sourceType") || type === "literal_error")
+        return "sourceType 格式不合法"
+      if (location.includes("mealName")) return "餐點名稱不足"
+      if (location.includes("recommendationReason")) return "推薦原因不完整"
+      if (typeof issue.msg === "string" && issue.msg.trim()) return issue.msg.trim()
+    }
+  }
+  return ""
 }
 
 export function backendMealToMeal(meal: FlexibleBackendMeal): Meal {
@@ -142,6 +169,127 @@ export function mealToBackendMeal(meal: Meal): BackendMeal {
 }
 
 const defaultLocalMealReason = "使用者新增餐點資料，可作為後續推薦依據。"
+
+type LocalMealRepairPreset = Pick<
+  Meal,
+  "type" | "calories" | "protein" | "tags" | "ingredients" | "allergens" | "reason"
+>
+
+const localMealRepairPresets: Record<string, LocalMealRepairPreset> = {
+  鮮蝦蔬菜碗: {
+    type: "健康餐 / 飯類",
+    calories: 450,
+    protein: 25,
+    tags: ["健康餐", "海鮮", "蔬菜", "高蛋白"],
+    ingredients: ["蝦仁", "蔬菜", "米飯"],
+    allergens: ["甲殼類"],
+    reason: "此餐點包含蝦仁與蔬菜，可作為日常均衡餐點參考。",
+  },
+  炸雞排: {
+    type: "炸物 / 小吃",
+    calories: 600,
+    protein: 35,
+    tags: ["炸物", "雞肉", "高蛋白"],
+    ingredients: ["雞肉", "麵衣", "油"],
+    allergens: ["麩質"],
+    reason: "炸雞排以雞肉、麵衣與油製作，蛋白質較高，也應留意油脂與份量。",
+  },
+  豬肉片: {
+    type: "食材 / 肉類",
+    calories: 250,
+    protein: 20,
+    tags: ["食材", "肉類", "豬肉", "高蛋白"],
+    ingredients: ["豬肉"],
+    allergens: [],
+    reason: "此結果為豬肉食材資料，可作為後續餐點搭配與推薦參考。",
+  },
+  雞胸肉: {
+    type: "食材 / 肉類",
+    calories: 165,
+    protein: 31,
+    tags: ["食材", "肉類", "雞肉", "高蛋白", "低脂"],
+    ingredients: ["雞肉"],
+    allergens: [],
+    reason: "此結果為雞胸肉食材資料，可作為後續餐點搭配與推薦參考。",
+  },
+  花生: {
+    type: "食材 / 堅果",
+    calories: 567,
+    protein: 26,
+    tags: ["食材", "堅果", "高蛋白"],
+    ingredients: ["花生"],
+    allergens: ["花生"],
+    reason: "此結果為花生食材資料，熱量較高，花生過敏者應避免食用。",
+  },
+  西瓜: {
+    type: "食材 / 水果",
+    calories: 30,
+    protein: 1,
+    tags: ["食材", "水果", "低熱量"],
+    ingredients: ["西瓜"],
+    allergens: [],
+    reason: "此結果為西瓜食材資料，可作為水果份量與餐點搭配參考。",
+  },
+  豆腐: {
+    type: "食材 / 豆類",
+    calories: 80,
+    protein: 8,
+    tags: ["食材", "豆類", "植物性蛋白"],
+    ingredients: ["黃豆"],
+    allergens: ["大豆"],
+    reason: "此結果為豆腐食材資料，可作為植物性蛋白質搭配參考。",
+  },
+  雞蛋: {
+    type: "食材 / 蛋類",
+    calories: 80,
+    protein: 7,
+    tags: ["食材", "蛋類", "高蛋白"],
+    ingredients: ["雞蛋"],
+    allergens: ["蛋"],
+    reason: "此結果為雞蛋食材資料，可作為後續餐點搭配與推薦參考。",
+  },
+}
+
+export function repairLocalMealDraft(meal: Meal): Meal | null {
+  const mealName = typeof meal.name === "string" ? meal.name.trim() : ""
+  const preset = localMealRepairPresets[mealName]
+  if (!preset) return null
+  const validNumber = (value: unknown, fallback: number) => {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+  }
+  const usableList = (value: unknown) =>
+    Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      : []
+  const ingredients = usableList(meal.ingredients).filter(
+    (item) => !/主要食材待確認|主要食材需人工確認|unknown|未確認/.test(item),
+  )
+  const reason = typeof meal.reason === "string" ? meal.reason.trim() : ""
+  return {
+    ...meal,
+    name: mealName,
+    type: meal.type?.trim() && meal.type.trim() !== "使用者新增" ? meal.type.trim() : preset.type,
+    calories: validNumber(meal.calories, preset.calories),
+    protein: validNumber(meal.protein, preset.protein),
+    tags: [...new Set([...usableList(meal.tags), ...preset.tags])],
+    ingredients: [...new Set([...ingredients, ...preset.ingredients])],
+    allergens: [...new Set([...usableList(meal.allergens), ...preset.allergens])],
+    reason: reason && !/fallback|rule-based|AI 服務無法使用/i.test(reason) ? reason : preset.reason,
+    confidence:
+      Number.isFinite(Number(meal.confidence)) && Number(meal.confidence) >= 0
+        ? Math.min(Number(meal.confidence), 0.85)
+        : 0.6,
+    sourceType: "文字",
+    createdAt:
+      typeof meal.createdAt === "string" && !Number.isNaN(Date.parse(meal.createdAt))
+        ? meal.createdAt
+        : new Date().toISOString(),
+    isAiGenerated: false,
+    pendingSync: true,
+    syncError: undefined,
+  }
+}
 
 export class LocalMealValidationError extends Error {
   constructor(message: string) {
@@ -291,7 +439,14 @@ export async function syncMealsToBackend(meals: Meal[]): Promise<MealSyncResult>
       const action = payload.action
       successful.push({ localMeal, savedMeal, action })
     } catch (error) {
-      const reason = error instanceof LocalMealValidationError ? error.message : "後端拒絕資料格式"
+      const reason =
+        error instanceof LocalMealValidationError
+          ? error.message
+          : error instanceof ApiRequestError && [400, 422].includes(error.status)
+            ? error.message
+            : error instanceof ApiRequestError && error.status >= 500
+              ? "後端服務暫時無法使用"
+              : "後端連線失敗"
       if (import.meta.env.DEV) console.warn("Local meal sync failed", { localMeal, error })
       failed.push({ meal: localMeal, reason })
     }

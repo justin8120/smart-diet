@@ -2155,7 +2155,64 @@ def test_post_meals_rejects_incomplete_meal(monkeypatch, tmp_path):
     response = client.post("/api/meals", json=incomplete.model_dump())
 
     assert response.status_code == 400
-    assert "\u8cc7\u6599\u4e0d\u5b8c\u6574" in response.json()["detail"]
+    assert response.json()["detail"] == "缺少主要食材"
+
+
+def test_post_meals_missing_main_ingredients_returns_readable_detail(monkeypatch, tmp_path):
+    base_file = tmp_path / "meals.json"
+    user_file = tmp_path / "user_meals.json"
+    base_file.write_text("[]", encoding="utf-8")
+    monkeypatch.setattr(meals_store, "MEALS_FILE", base_file)
+    monkeypatch.setattr(meals_store, "USER_MEALS_FILE", user_file)
+    payload = meal_fixture("鮮蝦蔬菜碗").model_dump()
+    payload["mainIngredients"] = []
+
+    response = client.post("/api/meals", json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "缺少主要食材"
+
+
+def test_post_meals_invalid_source_type_returns_readable_detail():
+    payload = meal_fixture("鮮蝦蔬菜碗").model_dump()
+    payload["sourceType"] = "manual"
+
+    response = client.post("/api/meals", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "sourceType 格式不合法"
+
+
+def test_post_meals_creates_merges_and_gets_shrimp_vegetable_bowl(monkeypatch, tmp_path):
+    base_file = tmp_path / "meals.json"
+    user_file = tmp_path / "user_meals.json"
+    base_file.write_text("[]", encoding="utf-8")
+    monkeypatch.setattr(meals_store, "MEALS_FILE", base_file)
+    monkeypatch.setattr(meals_store, "USER_MEALS_FILE", user_file)
+    shrimp_bowl = meal_fixture(
+        "鮮蝦蔬菜碗",
+        tags=["健康餐", "海鮮", "蔬菜", "高蛋白"],
+        ingredients=["蝦仁", "蔬菜", "米飯"],
+        allergens=["甲殼類"],
+        reason="此餐點包含蝦仁與蔬菜，可作為日常均衡餐點參考。",
+    ).model_copy(
+        update={
+            "mealType": "健康餐 / 飯類",
+            "estimatedCalories": 450,
+            "estimatedProtein": 25,
+            "confidence": 0.6,
+        },
+    )
+
+    created = client.post("/api/meals", json=shrimp_bowl.model_dump())
+    merged = client.post("/api/meals", json=shrimp_bowl.model_dump())
+    meals_response = client.get("/api/meals")
+
+    assert created.status_code == 200
+    assert created.json()["action"] == "created"
+    assert merged.status_code == 200
+    assert merged.json()["action"] == "merged"
+    assert any(meal["mealName"] == "鮮蝦蔬菜碗" for meal in meals_response.json())
 
 
 def test_user_meals_file_missing_or_invalid_does_not_break_health(monkeypatch, tmp_path):

@@ -19,6 +19,7 @@ import {
   fetchMeals,
   fetchNearbyPlaces,
   recommendMeals,
+  repairLocalMealDraft,
   syncMealsToBackend,
   type BackendHealth,
   type NearbyPlace,
@@ -1185,11 +1186,6 @@ export function App() {
       : backendHealth?.aiConfigured
         ? "已設定"
         : "未設定"
-  const mealDatasetCountLabel = mealDatasetLoading
-    ? "載入中"
-    : isOfflineMode
-      ? `${mealDataset.length}（離線示範）`
-      : `${mealDataset.length}`
   const allDietTags = useMemo(() => [...dietTags, ...customDietTags], [customDietTags])
   const allAvoidIngredients = useMemo(
     () => [...allergens, ...customAvoidIngredients],
@@ -1399,7 +1395,7 @@ export function App() {
 
     if (failed.length > 0) {
       const summary = failed
-        .map(({ meal, reason }) => `${meal.name || "未命名餐點"}${reason}`)
+        .map(({ meal, reason }) => `${meal.name || "未命名餐點"}：${reason}`)
         .join("；")
       setSyncMessage(`${failed.length} 筆資料同步失敗：${summary}，已保留在此裝置。`)
     } else {
@@ -1416,6 +1412,78 @@ export function App() {
     setMealDataset((current) => current.filter((meal) => meal.id !== mealId))
     setRecommendedMeals((current) => current.filter((meal) => meal.id !== mealId))
     setSyncMessage("已移除此本機暫存餐點。")
+  }
+
+  const handleRepairAndSyncLocalMeal = async (meal: Meal) => {
+    if (isSyncingLocalMeals) return
+    setIsSyncingLocalMeals(true)
+    setSyncMessage("")
+    setShowPersistenceNote(false)
+    const repairedMeal = repairLocalMealDraft(meal)
+    if (!repairedMeal) {
+      const reason = "無法自動修復，請移除或重新新增"
+      const nextLocalMeals = localUserMeals.map((item) =>
+        item.id === meal.id ? { ...item, pendingSync: true, syncError: reason } : item,
+      )
+      setLocalUserMeals(nextLocalMeals)
+      saveStoredMeals(nextLocalMeals)
+      setSyncMessage(`${meal.name || "未命名餐點"}：${reason}。`)
+      setIsSyncingLocalMeals(false)
+      return
+    }
+
+    const { successful, failed } = await syncMealsToBackend([repairedMeal])
+    const otherLocalMeals = localUserMeals.filter((item) => item.id !== meal.id)
+    const nextLocalMeals = failed.length
+      ? [
+          ...otherLocalMeals,
+          {
+            ...repairedMeal,
+            pendingSync: true,
+            syncError: failed[0].reason,
+          },
+        ]
+      : otherLocalMeals
+    setLocalUserMeals(nextLocalMeals)
+    saveStoredMeals(nextLocalMeals)
+
+    if (successful.length > 0) {
+      try {
+        const backendMeals = await fetchMeals()
+        const mergedMeals = mergeMealCollections(backendMeals, nextLocalMeals)
+        setBackendMealCount(backendMeals.length)
+        setMealDataset(mergedMeals)
+        setRecommendedMeals(mergedMeals)
+        setBackendError("")
+        setIsOfflineMode(false)
+      } catch {
+        const [{ savedMeal, action }] = successful
+        setMealDataset((current) =>
+          mergeMealCollections(
+            current.filter((item) => item.id !== meal.id),
+            [savedMeal],
+            nextLocalMeals,
+          ),
+        )
+        setRecommendedMeals((current) =>
+          mergeMealCollections(
+            current.filter((item) => item.id !== meal.id),
+            [savedMeal],
+            nextLocalMeals,
+          ),
+        )
+        if (action === "created") {
+          setBackendMealCount((current) => (current === null ? current : current + 1))
+        }
+      }
+      setSyncMessage(`${repairedMeal.name}已修復並同步至後端。`)
+      setShowPersistenceNote(true)
+    } else {
+      setSyncMessage(
+        `${repairedMeal.name}：${failed[0]?.reason || "後端同步失敗"}，已保留在此裝置。`,
+      )
+    }
+    setIsSyncingLocalMeals(false)
   }
 
   const handleRecommend = async () => {
@@ -1517,10 +1585,22 @@ export function App() {
         </section>
 
         <section className="metrics" aria-label="餐點資料摘要">
-          <div>
-            <span>{mealDatasetCountLabel}</span>
-            <p>資料集餐點</p>
+          <div aria-label={`首頁後端餐點：${backendMealCount ?? "無法取得"}`}>
+            <span>{mealDatasetLoading ? "載入中" : (backendMealCount ?? "無法取得")}</span>
+            <p>後端餐點</p>
           </div>
+          {localUserMeals.length > 0 ? (
+            <>
+              <div aria-label={`首頁本機暫存：${localUserMeals.length}`}>
+                <span>{localUserMeals.length}</span>
+                <p>本機暫存</p>
+              </div>
+              <div aria-label={`首頁合併顯示：${mealDataset.length}`}>
+                <span>{mealDatasetLoading ? "載入中" : mealDataset.length}</span>
+                <p>合併顯示</p>
+              </div>
+            </>
+          ) : null}
           <div>
             <span>{allDietTags.length}</span>
             <p>飲食標籤</p>
@@ -1805,6 +1885,15 @@ export function App() {
                     <button
                       className="utility-button"
                       type="button"
+                      disabled={isSyncingLocalMeals}
+                      onClick={() => handleRepairAndSyncLocalMeal(meal)}
+                    >
+                      修復資料並重新同步
+                    </button>
+                    <button
+                      className="utility-button"
+                      type="button"
+                      disabled={isSyncingLocalMeals}
                       onClick={() => handleRemoveLocalMeal(meal.id)}
                     >
                       移除此本機暫存

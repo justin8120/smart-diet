@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { App, __setNearbyRuntimeEnvForTests } from "./App"
-import { backendMealToMeal, inferGoals, type BackendMeal } from "./api"
+import { backendMealToMeal, inferGoals, repairLocalMealDraft, type BackendMeal } from "./api"
 
 const backendMeals: BackendMeal[] = [
   {
@@ -396,7 +396,7 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "同步本機暫存至後端" }))
 
     expect(
-      await screen.findByText("1 筆資料同步失敗：保留餐點後端拒絕資料格式，已保留在此裝置。"),
+      await screen.findByText("1 筆資料同步失敗：保留餐點：後端服務暫時無法使用，已保留在此裝置。"),
     ).toBeInTheDocument()
     expect(screen.getByLabelText("本機暫存餐點數：1")).toBeInTheDocument()
     const storedMeals = JSON.parse(
@@ -406,7 +406,7 @@ describe("App", () => {
       expect.objectContaining({
         name: "保留餐點",
         pendingSync: true,
-        syncError: "後端拒絕資料格式",
+        syncError: "後端服務暫時無法使用",
       }),
     ])
   })
@@ -477,7 +477,7 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: "同步本機暫存至後端" }))
 
     expect(
-      await screen.findByText("1 筆資料同步失敗：炸雞排缺少主要食材，已保留在此裝置。"),
+      await screen.findByText("1 筆資料同步失敗：炸雞排：缺少主要食材，已保留在此裝置。"),
     ).toBeInTheDocument()
     expect(
       fetchMock.mock.calls.filter(
@@ -510,6 +510,139 @@ describe("App", () => {
     expect(screen.getByLabelText("本機暫存餐點數：0")).toBeInTheDocument()
     expect(window.localStorage.getItem("smartDiet.localUserMeals")).toBeNull()
     expect(screen.getByText("已移除此本機暫存餐點。")).toBeInTheDocument()
+  })
+
+  test("shows a backend 422 detail instead of a generic sync rejection", async () => {
+    window.localStorage.setItem(
+      "smartDiet.localUserMeals",
+      JSON.stringify([
+        {
+          ...backendMealToMeal(analysisMeal),
+          id: "invalid-source-local",
+          name: "格式錯誤餐點",
+          pendingSync: true,
+        },
+      ]),
+    )
+    const onlineApi = mockOnlineApi()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).endsWith("/api/meals") && init?.method === "POST") {
+          return jsonResponse({ detail: "sourceType 格式不合法" }, { status: 422 })
+        }
+        return onlineApi(input, init)
+      }),
+    )
+
+    render(<App />)
+    await screen.findByLabelText("本機暫存餐點數：1")
+    await userEvent.click(screen.getByRole("button", { name: "同步本機暫存至後端" }))
+
+    expect(
+      await screen.findByText(
+        "1 筆資料同步失敗：格式錯誤餐點：sourceType 格式不合法，已保留在此裝置。",
+      ),
+    ).toBeInTheDocument()
+    expect(window.localStorage.getItem("smartDiet.localUserMeals")).toContain(
+      '"syncError":"sourceType 格式不合法"',
+    )
+  })
+
+  test("repairs and syncs a sparse local shrimp vegetable bowl", async () => {
+    const sparseMeal = {
+      id: "legacy-shrimp-bowl",
+      name: "鮮蝦蔬菜碗",
+      type: "",
+      calories: 0,
+      protein: 0,
+      tags: "健康餐",
+      goals: [],
+      ingredients: [],
+      allergens: [],
+      reason: "",
+      sourceType: "manual",
+      pendingSync: true,
+      localOnly: true,
+      syncError: "缺少主要食材",
+      debug: { legacy: true },
+    }
+    window.localStorage.setItem("smartDiet.localUserMeals", JSON.stringify([sparseMeal]))
+    let serverMeals = Array.from({ length: 121 }, (_, index) => ({
+      ...backendMeals[0],
+      id: `backend-${index + 1}`,
+      mealName: `後端餐點 ${index + 1}`,
+    }))
+    let postedPayload: Record<string, unknown> | null = null
+    const onlineApi = mockOnlineApi()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input)
+        if (url.endsWith("/api/meals") && init?.method === "POST") {
+          postedPayload = JSON.parse(String(init.body)) as Record<string, unknown>
+          serverMeals = [...serverMeals, postedPayload as BackendMeal]
+          return jsonResponse({ meal: postedPayload, action: "created" })
+        }
+        if (url.endsWith("/api/meals")) return jsonResponse(serverMeals)
+        return onlineApi(input, init)
+      }),
+    )
+
+    render(<App />)
+    expect(await screen.findByLabelText("後端餐點數：121")).toBeInTheDocument()
+    expect(screen.getByLabelText("首頁後端餐點：121")).toBeInTheDocument()
+    expect(screen.getByLabelText("首頁本機暫存：1")).toBeInTheDocument()
+    expect(screen.getByLabelText("首頁合併顯示：122")).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "修復資料並重新同步" }))
+
+    expect(await screen.findByText("鮮蝦蔬菜碗已修復並同步至後端。")).toBeInTheDocument()
+    expect(postedPayload).toEqual(
+      expect.objectContaining({
+        mealName: "鮮蝦蔬菜碗",
+        mealType: "健康餐 / 飯類",
+        estimatedCalories: 450,
+        estimatedProtein: 25,
+        tags: ["健康餐", "海鮮", "蔬菜", "高蛋白"],
+        mainIngredients: ["蝦仁", "蔬菜", "米飯"],
+        allergens: ["甲殼類"],
+        sourceType: "text",
+      }),
+    )
+    expect(postedPayload).not.toHaveProperty("pendingSync")
+    expect(postedPayload).not.toHaveProperty("localOnly")
+    expect(postedPayload).not.toHaveProperty("syncError")
+    expect(postedPayload).not.toHaveProperty("debug")
+    expect(screen.getByLabelText("後端餐點數：122")).toBeInTheDocument()
+    expect(screen.getByLabelText("本機暫存餐點數：0")).toBeInTheDocument()
+    expect(screen.getByLabelText("合併後餐點數：122")).toBeInTheDocument()
+    expect(window.localStorage.getItem("smartDiet.localUserMeals")).toBeNull()
+  })
+
+  test("repairLocalMealDraft fills the minimum shrimp bowl fields", () => {
+    const repaired = repairLocalMealDraft({
+      id: "repair-unit",
+      name: "鮮蝦蔬菜碗",
+      type: "",
+      calories: Number.NaN,
+      protein: Number.NaN,
+      tags: [],
+      goals: [],
+      ingredients: [],
+      allergens: [],
+      reason: "",
+    })
+
+    expect(repaired).toEqual(
+      expect.objectContaining({
+        type: "健康餐 / 飯類",
+        calories: 450,
+        protein: 25,
+        ingredients: ["蝦仁", "蔬菜", "米飯"],
+        allergens: ["甲殼類"],
+      }),
+    )
   })
 
   test("retries health check and eventually shows connected backend status", async () => {
@@ -1239,7 +1372,7 @@ describe("App", () => {
 
     expect(await screen.findByText(/目前無法連線後端/)).toBeInTheDocument()
     expect(screen.getByText("目前使用本機暫存資料。")).toBeInTheDocument()
-    expect(screen.getByText(/9（離線示範）/)).toBeInTheDocument()
+    expect(screen.getByLabelText("首頁後端餐點：無法取得")).toBeInTheDocument()
     expect(screen.getByText(/API 狀態：暫時無法連線/)).toBeInTheDocument()
   })
 

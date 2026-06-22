@@ -3,9 +3,11 @@ import json
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from app.models import (
     MealAnalysisResult,
@@ -46,6 +48,19 @@ app = FastAPI(
     lifespan=lifespan,
     default_response_class=UnicodeEscapedJSONResponse,
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def readable_request_validation_error(
+    request: Request,
+    error: RequestValidationError,
+) -> Response:
+    if request.url.path == "/api/meals" and request.method == "POST":
+        return UnicodeEscapedJSONResponse(
+            status_code=422,
+            content={"detail": _meal_request_validation_detail(error.errors())},
+        )
+    return await request_validation_exception_handler(request, error)
 
 frontend_origins = [
     origin.strip()
@@ -120,6 +135,26 @@ def create_meal(meal: MealAnalysisResult) -> MealUpsertResponse:
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return MealUpsertResponse(meal=saved_meal, action=action)
+
+
+def _meal_request_validation_detail(errors: list[dict[str, object]]) -> str:
+    for issue in errors:
+        location = ".".join(str(item) for item in issue.get("loc", []))
+        if "mealName" in location:
+            return "餐點名稱不足"
+        if "mainIngredients" in location:
+            return "缺少主要食材"
+        if "estimatedCalories" in location:
+            return "熱量不是有效數值"
+        if "sourceType" in location:
+            return "sourceType 格式不合法"
+        if "recommendationReason" in location:
+            return "推薦原因不完整"
+        if "tags" in location:
+            return "缺少餐點標籤"
+        if "mealType" in location:
+            return "餐點類型不足"
+    return "餐點資料格式不合法"
 
 
 @app.post("/api/recommend", response_model=list[MealAnalysisResult])
