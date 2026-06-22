@@ -18,6 +18,7 @@ import {
   fetchMeals,
   fetchNearbyPlaces,
   recommendMeals,
+  syncMealsToBackend,
   type BackendHealth,
   type NearbyPlace,
 } from "./api"
@@ -408,6 +409,10 @@ function loadStoredMeals() {
 }
 
 function saveStoredMeals(values: Meal[]) {
+  if (values.length === 0) {
+    window.localStorage.removeItem(localUserMealsKey)
+    return
+  }
   window.localStorage.setItem(localUserMealsKey, JSON.stringify(values))
 }
 
@@ -1059,6 +1064,9 @@ export function App() {
   const [analysisError, setAnalysisError] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isRecommending, setIsRecommending] = useState(false)
+  const [isSyncingLocalMeals, setIsSyncingLocalMeals] = useState(false)
+  const [syncMessage, setSyncMessage] = useState("")
+  const [showPersistenceNote, setShowPersistenceNote] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -1243,25 +1251,81 @@ export function App() {
       return
     }
 
+    let savedMeal: Meal
+    let action: "created" | "merged"
     try {
       if (isOfflineMode) throw new Error("offline")
-      const { meal: savedMeal, action } = await addMeal(analysisResult)
-      setMealDataset((current) => mergeMealCollections(current, [savedMeal]))
-      setRecommendedMeals((current) => mergeMealCollections(current, [savedMeal]))
-      if (action === "created") {
-        setBackendMealCount((current) => (current === null ? current : current + 1))
-      }
-      setAnalysisMessage(action === "merged" ? "已合併至既有餐點資料。" : "已新增至餐點資料集。")
-      setAnalysisError("")
+      const response = await addMeal(analysisResult)
+      savedMeal = response.meal
+      action = response.action
     } catch {
-      const nextLocalMeals = mergeMealCollections(localUserMeals, [analysisResult])
+      const pendingMeal = { ...analysisResult, pendingSync: true }
+      const nextLocalMeals = mergeMealCollections(localUserMeals, [pendingMeal]).map((meal) => ({
+        ...meal,
+        pendingSync: true,
+      }))
       setLocalUserMeals(nextLocalMeals)
       saveStoredMeals(nextLocalMeals)
       setMealDataset((current) => mergeMealCollections(current, [analysisResult]))
       setRecommendedMeals((current) => mergeMealCollections(current, [analysisResult]))
       setAnalysisMessage("後端新增失敗，已暫存在此裝置。")
       setAnalysisError("")
+      return
     }
+
+    try {
+      const backendMeals = await fetchMeals()
+      const mergedMeals = mergeMealCollections(backendMeals, localUserMeals)
+      setBackendMealCount(backendMeals.length)
+      setMealDataset(mergedMeals)
+      setRecommendedMeals(mergedMeals)
+    } catch {
+      setMealDataset((current) => mergeMealCollections(current, [savedMeal]))
+      setRecommendedMeals((current) => mergeMealCollections(current, [savedMeal]))
+      if (action === "created") {
+        setBackendMealCount((current) => (current === null ? current : current + 1))
+      }
+    }
+    setAnalysisMessage(action === "merged" ? "已合併至後端餐點資料集" : "已新增至後端餐點資料集")
+    setAnalysisError("")
+  }
+
+  const handleSyncLocalMeals = async () => {
+    if (localUserMeals.length === 0 || isSyncingLocalMeals) return
+    setIsSyncingLocalMeals(true)
+    setSyncMessage("")
+    setShowPersistenceNote(false)
+
+    const { successful, failed } = await syncMealsToBackend(localUserMeals)
+    const remainingMeals = failed.map((meal) => ({ ...meal, pendingSync: true }))
+    setLocalUserMeals(remainingMeals)
+    saveStoredMeals(remainingMeals)
+
+    if (successful.length > 0) {
+      try {
+        const backendMeals = await fetchMeals()
+        const mergedMeals = mergeMealCollections(backendMeals, remainingMeals)
+        setBackendMealCount(backendMeals.length)
+        setMealDataset(mergedMeals)
+        setRecommendedMeals(mergedMeals)
+        setBackendError("")
+        setIsOfflineMode(false)
+      } catch {
+        const savedMeals = successful.map(({ savedMeal }) => savedMeal)
+        setMealDataset((current) => mergeMealCollections(current, savedMeals, remainingMeals))
+        setRecommendedMeals((current) => mergeMealCollections(current, savedMeals, remainingMeals))
+        const createdCount = successful.filter(({ action }) => action === "created").length
+        setBackendMealCount((current) => (current === null ? current : current + createdCount))
+      }
+    }
+
+    if (failed.length > 0) {
+      setSyncMessage("部分資料同步失敗，已保留在此裝置")
+    } else {
+      setSyncMessage("本機暫存餐點已同步至後端")
+      setShowPersistenceNote(true)
+    }
+    setIsSyncingLocalMeals(false)
   }
 
   const handleRecommend = async () => {
@@ -1621,7 +1685,23 @@ export function App() {
             </div>
           </div>
           {localUserMeals.length > 0 ? (
-            <p className="dataset-source-note">此裝置有本機暫存餐點，其他裝置不會同步。</p>
+            <div className="dataset-sync-actions">
+              <p className="dataset-source-note">此裝置有本機暫存餐點，其他裝置不會同步。</p>
+              <button
+                className="utility-button"
+                type="button"
+                disabled={isSyncingLocalMeals}
+                onClick={handleSyncLocalMeals}
+              >
+                {isSyncingLocalMeals ? "同步中..." : "同步本機暫存至後端"}
+              </button>
+            </div>
+          ) : null}
+          {syncMessage ? <p className="status-message">{syncMessage}</p> : null}
+          {showPersistenceNote ? (
+            <p className="dataset-source-note">
+              已同步至後端；若部署環境未啟用永久磁碟，重新部署後使用者新增資料可能遺失。
+            </p>
           ) : null}
           {!mealDatasetLoading && isOfflineMode ? (
             <p className="dataset-source-note">目前使用本機暫存資料。</p>

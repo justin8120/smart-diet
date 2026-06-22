@@ -276,6 +276,19 @@ h3 {
   background: #f1f8f5;
 }
 
+.dataset-sync-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dataset-sync-actions .dataset-source-note {
+  flex: 1;
+  margin: 0;
+}
+
 .recommendation-panel,
 .analysis-panel {
   display: grid;
@@ -718,6 +731,11 @@ fieldset {
 
   .metrics {
     grid-template-columns: 1fr;
+  }
+
+  .dataset-sync-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

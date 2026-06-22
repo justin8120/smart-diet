@@ -42,6 +42,7 @@ export type Meal = {
   sourceType?: MealSourceType
   createdAt?: string
   isAiGenerated?: boolean
+  pendingSync?: boolean
 }
 
 export const healthGoals: HealthGoal[] = ["減脂", "增肌", "均衡飲食", "健康維持"]

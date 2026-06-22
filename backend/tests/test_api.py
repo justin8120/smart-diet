@@ -2046,7 +2046,10 @@ def test_post_meals_creates_user_meal_without_touching_base_file(monkeypatch, tm
     assert response.status_code == 200
     assert response.json()["action"] == "created"
     assert json.loads(base_file.read_text(encoding="utf-8")) == []
+    assert user_file.exists()
     assert len(json.loads(user_file.read_text(encoding="utf-8"))) == 1
+    names = [meal["mealName"] for meal in client.get("/api/meals").json()]
+    assert "\u7d2b\u7c73\u852c\u83dc\u98ef" in names
 
 
 def test_post_meals_merges_same_name_without_duplicate(monkeypatch, tmp_path):

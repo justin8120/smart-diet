@@ -187,6 +187,31 @@ export async function addMeal(
   return { meal: backendMealToMeal(payload.meal), action: payload.action }
 }
 
+export type MealSyncResult = {
+  successful: Array<{
+    localMeal: Meal
+    savedMeal: Meal
+    action: MealUpsertResponse["action"]
+  }>
+  failed: Meal[]
+}
+
+export async function syncMealsToBackend(meals: Meal[]): Promise<MealSyncResult> {
+  const successful: MealSyncResult["successful"] = []
+  const failed: Meal[] = []
+
+  for (const localMeal of meals) {
+    try {
+      const { meal: savedMeal, action } = await addMeal(localMeal)
+      successful.push({ localMeal, savedMeal, action })
+    } catch {
+      failed.push(localMeal)
+    }
+  }
+
+  return { successful, failed }
+}
+
 export async function recommendMeals(payload: RecommendPayload): Promise<Meal[]> {
   const response = await request<BackendMeal[]>("/api/recommend", {
     method: "POST",

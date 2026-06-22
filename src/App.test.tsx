@@ -259,8 +259,9 @@ describe("App", () => {
     expect(within(mealDataset).getByText("茶葉蛋")).toBeInTheDocument()
   })
 
-  test("shows 121 backend meals plus one local meal as 122 merged meals", async () => {
-    const manyBackendMeals = Array.from({ length: 121 }, (_, index) => ({
+  test("syncs one local meal into 121 backend meals and refreshes the counts", async () => {
+    const user = userEvent.setup()
+    let serverMeals = Array.from({ length: 121 }, (_, index) => ({
       ...backendMeals[0],
       id: `backend-${index + 1}`,
       mealName: `後端餐點 ${index + 1}`,
@@ -272,11 +273,21 @@ describe("App", () => {
     }
     window.localStorage.setItem("smartDiet.localUserMeals", JSON.stringify([localMeal]))
     const onlineApi = mockOnlineApi()
+    let mealGetCalls = 0
+    let mealPostCalls = 0
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (String(input).endsWith("/api/meals") && init?.method !== "POST") {
-          return jsonResponse(manyBackendMeals)
+        const url = String(input)
+        if (url.endsWith("/api/meals") && init?.method === "POST") {
+          mealPostCalls += 1
+          const payload = JSON.parse(String(init.body)) as BackendMeal
+          serverMeals = [...serverMeals, payload]
+          return jsonResponse({ meal: payload, action: "created" })
+        }
+        if (url.endsWith("/api/meals")) {
+          mealGetCalls += 1
+          return jsonResponse(serverMeals)
         }
         return onlineApi(input, init)
       }),
@@ -288,6 +299,18 @@ describe("App", () => {
     expect(screen.getByLabelText("本機暫存餐點數：1")).toBeInTheDocument()
     expect(screen.getByLabelText("合併後餐點數：122")).toBeInTheDocument()
     expect(screen.getByText("此裝置有本機暫存餐點，其他裝置不會同步。")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "同步本機暫存至後端" })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "同步本機暫存至後端" }))
+
+    expect(await screen.findByText("本機暫存餐點已同步至後端")).toBeInTheDocument()
+    expect(screen.getByLabelText("後端餐點數：122")).toBeInTheDocument()
+    expect(screen.getByLabelText("本機暫存餐點數：0")).toBeInTheDocument()
+    expect(screen.getByLabelText("合併後餐點數：122")).toBeInTheDocument()
+    expect(window.localStorage.getItem("smartDiet.localUserMeals")).toBeNull()
+    expect(mealPostCalls).toBe(1)
+    expect(mealGetCalls).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText(/已同步至後端；若部署環境未啟用永久磁碟/)).toBeInTheDocument()
   })
 
   test("keeps local meal count separate when it duplicates a backend meal", async () => {
@@ -301,10 +324,15 @@ describe("App", () => {
       JSON.stringify([{ ...backendMealToMeal(backendMeals[0]), id: "local-tea-egg" }]),
     )
     const onlineApi = mockOnlineApi()
+    let mealPostCalls = 0
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (String(input).endsWith("/api/meals") && init?.method !== "POST") {
+        if (String(input).endsWith("/api/meals") && init?.method === "POST") {
+          mealPostCalls += 1
+          return jsonResponse({ meal: backendMeals[0], action: "merged" })
+        }
+        if (String(input).endsWith("/api/meals")) {
           return jsonResponse(manyBackendMeals)
         }
         return onlineApi(input, init)
@@ -316,6 +344,63 @@ describe("App", () => {
     expect(await screen.findByLabelText("後端餐點數：121")).toBeInTheDocument()
     expect(screen.getByLabelText("本機暫存餐點數：1")).toBeInTheDocument()
     expect(screen.getByLabelText("合併後餐點數：121")).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "同步本機暫存至後端" }))
+
+    expect(await screen.findByLabelText("本機暫存餐點數：0")).toBeInTheDocument()
+    expect(screen.getByLabelText("合併後餐點數：121")).toBeInTheDocument()
+    const dataset = screen.getByLabelText("餐點資料集清單")
+    expect(within(dataset).getAllByText("茶葉蛋")).toHaveLength(1)
+    expect(mealPostCalls).toBe(1)
+  })
+
+  test("keeps failed meals in localStorage when only part of a sync succeeds", async () => {
+    const user = userEvent.setup()
+    const successfulLocalMeal = {
+      ...backendMealToMeal(analysisMeal),
+      id: "local-success",
+      name: "可同步餐點",
+      pendingSync: true,
+    }
+    const failedLocalMeal = {
+      ...backendMealToMeal(cinnamonRollMeal),
+      id: "local-failure",
+      name: "保留餐點",
+      pendingSync: true,
+    }
+    window.localStorage.setItem(
+      "smartDiet.localUserMeals",
+      JSON.stringify([successfulLocalMeal, failedLocalMeal]),
+    )
+    let serverMeals = [...backendMeals]
+    const onlineApi = mockOnlineApi()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input)
+        if (url.endsWith("/api/meals") && init?.method === "POST") {
+          const payload = JSON.parse(String(init.body)) as BackendMeal
+          if (payload.mealName === "保留餐點") {
+            return jsonResponse({ detail: "offline" }, { status: 503 })
+          }
+          serverMeals = [...serverMeals, payload]
+          return jsonResponse({ meal: payload, action: "created" })
+        }
+        if (url.endsWith("/api/meals")) return jsonResponse(serverMeals)
+        return onlineApi(input, init)
+      }),
+    )
+
+    render(<App />)
+    await screen.findByLabelText("本機暫存餐點數：2")
+    await user.click(screen.getByRole("button", { name: "同步本機暫存至後端" }))
+
+    expect(await screen.findByText("部分資料同步失敗，已保留在此裝置")).toBeInTheDocument()
+    expect(screen.getByLabelText("本機暫存餐點數：1")).toBeInTheDocument()
+    const storedMeals = JSON.parse(
+      window.localStorage.getItem("smartDiet.localUserMeals") ?? "[]",
+    ) as Array<{ name: string; pendingSync: boolean }>
+    expect(storedMeals).toEqual([expect.objectContaining({ name: "保留餐點", pendingSync: true })])
   })
 
   test("retries health check and eventually shows connected backend status", async () => {
@@ -393,7 +478,7 @@ describe("App", () => {
     expect(within(analysis).getByText("茶葉蛋")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "加入餐點資料集" }))
-    await waitFor(() => expect(screen.getByText("已新增至餐點資料集。")).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText("已新增至後端餐點資料集")).toBeInTheDocument())
     expect(
       fetchMock.mock.calls.some(
         ([input, init]) => String(input).endsWith("/api/meals") && init?.method === "POST",
@@ -430,7 +515,7 @@ describe("App", () => {
     await screen.findByLabelText("AI 分析結果")
     await user.click(screen.getByRole("button", { name: "加入餐點資料集" }))
 
-    expect(await screen.findByText("已合併至既有餐點資料。")).toBeInTheDocument()
+    expect(await screen.findByText("已合併至後端餐點資料集")).toBeInTheDocument()
   })
 
   test("stores analyzed meal locally when backend add fails", async () => {
@@ -467,6 +552,7 @@ describe("App", () => {
     expect(screen.getByText("此裝置有本機暫存餐點，其他裝置不會同步。")).toBeInTheDocument()
     expect(screen.getByLabelText("本機暫存餐點數：1")).toBeInTheDocument()
     expect(window.localStorage.getItem("smartDiet.localUserMeals")).toContain("茶葉蛋")
+    expect(window.localStorage.getItem("smartDiet.localUserMeals")).toContain('"pendingSync":true')
   })
 
   test("local user meals merge with backend meals without duplicate cards", async () => {
