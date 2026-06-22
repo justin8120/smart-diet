@@ -1,0 +1,27 @@
+[
+  {
+    "id": "test-紫米蔬菜飯",
+    "mealName": "紫米蔬菜飯",
+    "mealType": "測試餐",
+    "estimatedCalories": 500.0,
+    "estimatedProtein": 25.0,
+    "tags": [
+      "健康餐"
+    ],
+    "mainIngredients": [
+      "白飯",
+      "蔬菜"
+    ],
+    "allergens": [],
+    "recommendationReason": "測試用餐點。",
+    "confidence": 0.7,
+    "sourceType": "text",
+    "createdAt": "2026-06-12T00:00:00+00:00",
+    "isAiGenerated": false,
+    "recommendedGoals": [
+      "均衡飲食"
+    ],
+    "warningMessage": null,
+    "nutritionNote": null
+  }
+]

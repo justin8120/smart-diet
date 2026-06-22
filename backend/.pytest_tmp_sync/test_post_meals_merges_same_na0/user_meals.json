@@ -1,0 +1,32 @@
+[
+  {
+    "id": "test-炸雞排",
+    "mealName": "炸雞排",
+    "mealType": "測試餐",
+    "estimatedCalories": 500.0,
+    "estimatedProtein": 25.0,
+    "tags": [
+      "炸物",
+      "雞肉",
+      "高蛋白",
+      "小吃"
+    ],
+    "mainIngredients": [
+      "雞肉",
+      "麵衣",
+      "油",
+      "胡椒"
+    ],
+    "allergens": [],
+    "recommendationReason": "炸雞排以雞肉與麵衣炸製，胡椒增加風味，建議注意份量。",
+    "confidence": 0.7,
+    "sourceType": "text",
+    "createdAt": "2026-06-12T00:00:00+00:00",
+    "isAiGenerated": false,
+    "recommendedGoals": [
+      "均衡飲食"
+    ],
+    "warningMessage": null,
+    "nutritionNote": null
+  }
+]

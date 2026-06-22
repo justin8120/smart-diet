@@ -1,0 +1,1117 @@
+{
+  "dataset": {
+    "manifest": "C:\\Users\\justi\\Desktop\\project\\backend\\data\\image_dataset\\eval_manifest.json",
+    "totalRecords": 50,
+    "evaluatedRecords": 50,
+    "unavailableRecords": 0,
+    "categoryDistribution": {
+      "炸物 / 小吃": 5,
+      "便當": 5,
+      "飯類 / 丼飯": 5,
+      "麵類": 5,
+      "早餐": 5,
+      "日式 / 速食": 5,
+      "健康餐": 5,
+      "素食 / 蔬食": 5,
+      "甜點 / 飲品 / 水果": 5,
+      "容易誤判案例": 5
+    },
+    "splitMethod": "每類固定交錯切分，train/eval 各 50 筆",
+    "leakageChecked": true,
+    "leakage": {}
+  },
+  "metrics": {
+    "exactMatchAccuracy": 1.0,
+    "acceptableNameAccuracy": 1.0,
+    "mealTypeAccuracy": 1.0,
+    "tag": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "ingredient": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "allergenRecall": 1.0,
+    "forbiddenPredictionCount": 0,
+    "calorieRangeAccuracy": 1.0,
+    "proteinRangeAccuracy": 1.0,
+    "highConfidenceErrorCount": 0
+  },
+  "confusionPairs": [],
+  "commonErrorTypes": {},
+  "results": [
+    {
+      "id": "eval_0001",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "鹽酥雞",
+        "mealType": "炸物 / 小吃",
+        "tags": [
+          "炸物",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "鹽酥雞"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0002",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "臭豆腐",
+        "mealType": "炸物 / 小吃",
+        "tags": [
+          "炸物",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "臭豆腐"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0003",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "炸雞排",
+        "mealType": "炸物 / 小吃",
+        "tags": [
+          "炸物",
+          "雞肉",
+          "高蛋白"
+        ],
+        "mainIngredients": [
+          "雞肉",
+          "麵衣",
+          "油"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 625.0,
+        "estimatedProtein": 35.0,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0004",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "臭豆腐",
+        "mealType": "炸物 / 小吃",
+        "tags": [
+          "炸物",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "臭豆腐"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0005",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "地瓜球",
+        "mealType": "炸物 / 小吃",
+        "tags": [
+          "炸物",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "地瓜球"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0006",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "雞腿飯",
+        "mealType": "便當",
+        "tags": [
+          "便當",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "雞腿飯",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0007",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "排骨飯",
+        "mealType": "便當",
+        "tags": [
+          "便當",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "排骨飯",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0008",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "魚排飯",
+        "mealType": "便當",
+        "tags": [
+          "便當",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "魚排飯",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0009",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "舒肥雞胸便當",
+        "mealType": "便當",
+        "tags": [
+          "便當",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "舒肥雞胸",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0010",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "滷肉便當",
+        "mealType": "便當",
+        "tags": [
+          "便當",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "滷肉",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0011",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "雞肉飯",
+        "mealType": "飯類 / 丼飯",
+        "tags": [
+          "飯類",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "雞肉飯",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0012",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "牛丼",
+        "mealType": "飯類 / 丼飯",
+        "tags": [
+          "飯類",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "牛丼",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0013",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "咖哩飯",
+        "mealType": "飯類 / 丼飯",
+        "tags": [
+          "飯類",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "咖哩飯",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0014",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "親子丼",
+        "mealType": "飯類 / 丼飯",
+        "tags": [
+          "飯類",
+          "雞肉",
+          "日式"
+        ],
+        "mainIngredients": [
+          "雞肉",
+          "雞蛋",
+          "白飯"
+        ],
+        "allergens": [
+          "蛋",
+          "大豆",
+          "麩質"
+        ],
+        "estimatedCalories": 675.0,
+        "estimatedProtein": 32.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0015",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "牛丼",
+        "mealType": "飯類 / 丼飯",
+        "tags": [
+          "飯類",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "牛丼",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0016",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "牛肉麵",
+        "mealType": "麵類",
+        "tags": [
+          "麵類",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "牛肉麵",
+          "麵條",
+          "蔬菜"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0017",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "麻醬麵",
+        "mealType": "麵類",
+        "tags": [
+          "麵類",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "麻醬麵",
+          "麵條",
+          "蔬菜"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0018",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "海鮮烏龍麵",
+        "mealType": "麵類",
+        "tags": [
+          "麵類",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "海鮮烏龍麵",
+          "麵條",
+          "蔬菜"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0019",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "牛排鐵板麵",
+        "mealType": "麵類",
+        "tags": [
+          "麵類",
+          "牛肉",
+          "高蛋白"
+        ],
+        "mainIngredients": [
+          "牛肉",
+          "麵條",
+          "雞蛋"
+        ],
+        "allergens": [
+          "麩質",
+          "蛋"
+        ],
+        "estimatedCalories": 800.0,
+        "estimatedProtein": 40.0,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0020",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "餛飩麵",
+        "mealType": "麵類",
+        "tags": [
+          "麵類",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "餛飩麵",
+          "麵條",
+          "蔬菜"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0021",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "起司蛋餅",
+        "mealType": "早餐",
+        "tags": [
+          "早餐",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "起司蛋餅",
+          "麵粉",
+          "雞蛋"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0022",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "肉蛋吐司",
+        "mealType": "早餐",
+        "tags": [
+          "早餐",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "肉蛋吐司",
+          "麵粉",
+          "雞蛋"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0023",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "飯糰",
+        "mealType": "早餐",
+        "tags": [
+          "早餐",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "飯糰",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0024",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "滷蛋",
+        "mealType": "早餐",
+        "tags": [
+          "早餐",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "滷蛋"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0025",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "蔬菜蛋吐司",
+        "mealType": "早餐",
+        "tags": [
+          "早餐",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "蔬菜蛋吐司",
+          "麵粉",
+          "雞蛋"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0026",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "豬排丼",
+        "mealType": "日式 / 速食",
+        "tags": [
+          "日式",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "豬排丼",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0027",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "炸蝦丼",
+        "mealType": "日式 / 速食",
+        "tags": [
+          "日式",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "炸蝦丼",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0028",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "薯條",
+        "mealType": "日式 / 速食",
+        "tags": [
+          "日式",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "薯條"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0029",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "咖哩豬排飯",
+        "mealType": "日式 / 速食",
+        "tags": [
+          "飯類",
+          "豬肉",
+          "炸物"
+        ],
+        "mainIngredients": [
+          "豬排",
+          "白飯",
+          "咖哩"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 900.0,
+        "estimatedProtein": 32.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0030",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "炸魚堡",
+        "mealType": "日式 / 速食",
+        "tags": [
+          "日式",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "炸魚堡"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0031",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "舒肥雞胸餐",
+        "mealType": "健康餐",
+        "tags": [
+          "健康餐",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "舒肥雞胸"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0032",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "豆腐蔬菜餐",
+        "mealType": "健康餐",
+        "tags": [
+          "健康餐",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "豆腐蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0033",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "烤雞腿健康餐",
+        "mealType": "健康餐",
+        "tags": [
+          "健康餐",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "烤雞腿"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0034",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "牛肉健康餐",
+        "mealType": "健康餐",
+        "tags": [
+          "健康餐",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "牛肉"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0035",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "藜麥雞胸餐",
+        "mealType": "健康餐",
+        "tags": [
+          "健康餐",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "藜麥雞胸"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0036",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "蔬食便當",
+        "mealType": "素食 / 蔬食",
+        "tags": [
+          "素食",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "蔬食",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0037",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "豆腐蔬菜飯",
+        "mealType": "素食 / 蔬食",
+        "tags": [
+          "素食",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "豆腐蔬菜飯",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0038",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "素食滷味",
+        "mealType": "素食 / 蔬食",
+        "tags": [
+          "素食",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "素食滷味"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0039",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "番茄蔬菜麵",
+        "mealType": "素食 / 蔬食",
+        "tags": [
+          "素食",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "番茄蔬菜麵",
+          "麵條",
+          "蔬菜"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0040",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "素咖哩飯",
+        "mealType": "素食 / 蔬食",
+        "tags": [
+          "素食",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "素咖哩飯",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 525.0,
+        "estimatedProtein": 22.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0041",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "蛋糕",
+        "mealType": "甜點 / 飲品 / 水果",
+        "tags": [
+          "甜點",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "蛋糕"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 290.0,
+        "estimatedProtein": 6.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0042",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "西瓜",
+        "mealType": "甜點 / 飲品 / 水果",
+        "tags": [
+          "水果",
+          "低脂",
+          "清爽"
+        ],
+        "mainIngredients": [
+          "西瓜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 110.0,
+        "estimatedProtein": 2.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0043",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "無糖綠茶",
+        "mealType": "甜點 / 飲品 / 水果",
+        "tags": [
+          "甜點",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "無糖綠茶"
+        ],
+        "allergens": [],
+        "estimatedCalories": 175.0,
+        "estimatedProtein": 5.0,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0044",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "奶茶",
+        "mealType": "甜點 / 飲品 / 水果",
+        "tags": [
+          "甜點",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "奶茶"
+        ],
+        "allergens": [],
+        "estimatedCalories": 175.0,
+        "estimatedProtein": 5.0,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0045",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "麵包",
+        "mealType": "甜點 / 飲品 / 水果",
+        "tags": [
+          "甜點",
+          "台灣常見餐點"
+        ],
+        "mainIngredients": [
+          "麵包",
+          "麵條",
+          "蔬菜"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 290.0,
+        "estimatedProtein": 6.5,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0046",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "炸雞排",
+        "mealType": "容易誤判案例",
+        "tags": [
+          "炸物",
+          "雞肉",
+          "高蛋白"
+        ],
+        "mainIngredients": [
+          "雞肉",
+          "麵衣",
+          "油"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 625.0,
+        "estimatedProtein": 35.0,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0047",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "湯包",
+        "mealType": "容易誤判案例",
+        "tags": [
+          "麵食",
+          "豬肉",
+          "蒸物"
+        ],
+        "mainIngredients": [
+          "麵皮",
+          "豬肉",
+          "肉汁"
+        ],
+        "allergens": [
+          "麩質"
+        ],
+        "estimatedCalories": 350.0,
+        "estimatedProtein": 16.0,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0048",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "牛排鐵板麵",
+        "mealType": "容易誤判案例",
+        "tags": [
+          "麵類",
+          "牛肉",
+          "高蛋白"
+        ],
+        "mainIngredients": [
+          "牛肉",
+          "麵條",
+          "雞蛋"
+        ],
+        "allergens": [
+          "麩質",
+          "蛋"
+        ],
+        "estimatedCalories": 800.0,
+        "estimatedProtein": 40.0,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0049",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "雞胸肉便當",
+        "mealType": "容易誤判案例",
+        "tags": [
+          "便當",
+          "雞肉",
+          "高蛋白"
+        ],
+        "mainIngredients": [
+          "雞胸肉",
+          "白飯",
+          "蔬菜"
+        ],
+        "allergens": [],
+        "estimatedCalories": 575.0,
+        "estimatedProtein": 40.0,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "eval_0050",
+      "status": "evaluated",
+      "prediction": {
+        "mealName": "肉桂捲",
+        "mealType": "容易誤判案例",
+        "tags": [
+          "甜點",
+          "烘焙",
+          "高糖"
+        ],
+        "mainIngredients": [
+          "麵粉",
+          "肉桂",
+          "糖"
+        ],
+        "allergens": [
+          "麩質",
+          "奶"
+        ],
+        "estimatedCalories": 425.0,
+        "estimatedProtein": 7.0,
+        "confidence": 0.9
+      }
+    }
+  ],
+  "limitations": "未評估樣本不納入分母；本報告不是醫療級營養或專業影像辨識認證。"
+}
