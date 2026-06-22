@@ -243,6 +243,39 @@ h3 {
   max-width: 520px;
 }
 
+.dataset-source-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dataset-source-summary div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #dce3ee;
+  border-radius: 8px;
+  color: #607086;
+  background: #f8fafc;
+}
+
+.dataset-source-summary strong {
+  color: #218057;
+  font-size: 1.2rem;
+}
+
+.dataset-source-note {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 3px solid #70ad91;
+  border-radius: 4px;
+  color: #52677d;
+  background: #f1f8f5;
+}
+
 .recommendation-panel,
 .analysis-panel {
   display: grid;
@@ -677,7 +710,8 @@ fieldset {
   .section-heading,
   .control-row,
   .meal-grid,
-  .meal-data-grid {
+  .meal-data-grid,
+  .dataset-source-summary {
     display: grid;
     grid-template-columns: 1fr;
   }

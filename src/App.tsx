@@ -1022,6 +1022,7 @@ function NearbyPlaceCard({
 
 export function App() {
   const [localUserMeals, setLocalUserMeals] = useState<Meal[]>(loadStoredMeals)
+  const [backendMealCount, setBackendMealCount] = useState<number | null>(null)
   const [mealDataset, setMealDataset] = useState<Meal[]>(() =>
     mergeMealCollections(meals, loadStoredMeals()),
   )
@@ -1077,6 +1078,7 @@ export function App() {
         ])
         if (cancelled) return
         setBackendHealth(health)
+        setBackendMealCount(backendMeals.length)
         const mergedMeals = mergeMealCollections(backendMeals, localUserMeals)
         setMealDataset(mergedMeals)
         setRecommendedMeals(mergedMeals)
@@ -1085,6 +1087,7 @@ export function App() {
       } catch {
         if (cancelled) return
         setBackendHealth(null)
+        setBackendMealCount(null)
         const offlineMeals = mergeMealCollections(meals, localUserMeals)
         setMealDataset(offlineMeals)
         setRecommendedMeals(offlineMeals)
@@ -1245,6 +1248,9 @@ export function App() {
       const { meal: savedMeal, action } = await addMeal(analysisResult)
       setMealDataset((current) => mergeMealCollections(current, [savedMeal]))
       setRecommendedMeals((current) => mergeMealCollections(current, [savedMeal]))
+      if (action === "created") {
+        setBackendMealCount((current) => (current === null ? current : current + 1))
+      }
       setAnalysisMessage(action === "merged" ? "已合併至既有餐點資料。" : "已新增至餐點資料集。")
       setAnalysisError("")
     } catch {
@@ -1253,7 +1259,7 @@ export function App() {
       saveStoredMeals(nextLocalMeals)
       setMealDataset((current) => mergeMealCollections(current, [analysisResult]))
       setRecommendedMeals((current) => mergeMealCollections(current, [analysisResult]))
-      setAnalysisMessage("後端暫時無法連線，已先儲存在本機資料集。")
+      setAnalysisMessage("後端新增失敗，已暫存在此裝置。")
       setAnalysisError("")
     }
   }
@@ -1599,6 +1605,27 @@ export function App() {
             </div>
             <p>預設資料集與 AI 分析新增的餐點會顯示於此，並可作為推薦依據。</p>
           </div>
+
+          <div className="dataset-source-summary" aria-label="餐點資料來源摘要">
+            <div aria-label={`後端餐點數：${backendMealCount ?? "無法取得"}`}>
+              <span>後端餐點數</span>
+              <strong>{mealDatasetLoading ? "載入中" : (backendMealCount ?? "無法取得")}</strong>
+            </div>
+            <div aria-label={`本機暫存餐點數：${localUserMeals.length}`}>
+              <span>本機暫存餐點數</span>
+              <strong>{localUserMeals.length}</strong>
+            </div>
+            <div aria-label={`合併後餐點數：${mealDataset.length}`}>
+              <span>合併後餐點數</span>
+              <strong>{mealDatasetLoading ? "載入中" : mealDataset.length}</strong>
+            </div>
+          </div>
+          {localUserMeals.length > 0 ? (
+            <p className="dataset-source-note">此裝置有本機暫存餐點，其他裝置不會同步。</p>
+          ) : null}
+          {!mealDatasetLoading && isOfflineMode ? (
+            <p className="dataset-source-note">目前使用本機暫存資料。</p>
+          ) : null}
 
           <div className="meal-data-grid" aria-label="餐點資料集清單">
             {mealDatasetLoading ? (

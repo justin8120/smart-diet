@@ -153,8 +153,7 @@ const chickenRiceRateLimitFallback: BackendMeal = {
   sourceType: "text",
   createdAt: "2026-06-16T00:00:00+00:00",
   isAiGenerated: true,
-  warningMessage:
-    "Gemini API 目前請求過多，已改用保守規則分析；實際營養仍需以店家標示為準。",
+  warningMessage: "Gemini API 目前請求過多，已改用保守規則分析；實際營養仍需以店家標示為準。",
   nutritionNote: "此為依餐點名稱與圖片外觀推估，非精準營養標示。",
 }
 
@@ -247,7 +246,7 @@ describe("App", () => {
 
     expect(screen.getByText(/AI 後端狀態：連線中/)).toBeInTheDocument()
     expect(screen.getByText(/API 狀態：檢查中/)).toBeInTheDocument()
-    expect(screen.getByText("載入中")).toBeInTheDocument()
+    expect(screen.getAllByText("載入中").length).toBeGreaterThan(0)
     expect(screen.getByText(/正在連線後端服務/)).toBeInTheDocument()
     expect(screen.queryByText("資料集餐點：9")).not.toBeInTheDocument()
     expect(screen.queryByText(/API 狀態：未設定/)).not.toBeInTheDocument()
@@ -258,6 +257,65 @@ describe("App", () => {
 
     const mealDataset = await screen.findByLabelText("餐點資料集清單")
     expect(within(mealDataset).getByText("茶葉蛋")).toBeInTheDocument()
+  })
+
+  test("shows 121 backend meals plus one local meal as 122 merged meals", async () => {
+    const manyBackendMeals = Array.from({ length: 121 }, (_, index) => ({
+      ...backendMeals[0],
+      id: `backend-${index + 1}`,
+      mealName: `後端餐點 ${index + 1}`,
+    }))
+    const localMeal = {
+      ...backendMealToMeal(analysisMeal),
+      id: "local-only-meal",
+      name: "本機限定餐點",
+    }
+    window.localStorage.setItem("smartDiet.localUserMeals", JSON.stringify([localMeal]))
+    const onlineApi = mockOnlineApi()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).endsWith("/api/meals") && init?.method !== "POST") {
+          return jsonResponse(manyBackendMeals)
+        }
+        return onlineApi(input, init)
+      }),
+    )
+
+    render(<App />)
+
+    expect(await screen.findByLabelText("後端餐點數：121")).toBeInTheDocument()
+    expect(screen.getByLabelText("本機暫存餐點數：1")).toBeInTheDocument()
+    expect(screen.getByLabelText("合併後餐點數：122")).toBeInTheDocument()
+    expect(screen.getByText("此裝置有本機暫存餐點，其他裝置不會同步。")).toBeInTheDocument()
+  })
+
+  test("keeps local meal count separate when it duplicates a backend meal", async () => {
+    const manyBackendMeals = Array.from({ length: 121 }, (_, index) => ({
+      ...backendMeals[0],
+      id: `backend-${index + 1}`,
+      mealName: index === 0 ? "茶葉蛋" : `後端餐點 ${index + 1}`,
+    }))
+    window.localStorage.setItem(
+      "smartDiet.localUserMeals",
+      JSON.stringify([{ ...backendMealToMeal(backendMeals[0]), id: "local-tea-egg" }]),
+    )
+    const onlineApi = mockOnlineApi()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).endsWith("/api/meals") && init?.method !== "POST") {
+          return jsonResponse(manyBackendMeals)
+        }
+        return onlineApi(input, init)
+      }),
+    )
+
+    render(<App />)
+
+    expect(await screen.findByLabelText("後端餐點數：121")).toBeInTheDocument()
+    expect(screen.getByLabelText("本機暫存餐點數：1")).toBeInTheDocument()
+    expect(screen.getByLabelText("合併後餐點數：121")).toBeInTheDocument()
   })
 
   test("retries health check and eventually shows connected backend status", async () => {
@@ -315,7 +373,9 @@ describe("App", () => {
 
     render(<App />)
 
-    await waitFor(() => expect(screen.getByText(String(backendMeals.length))).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByLabelText(`後端餐點數：${backendMeals.length}`)).toBeInTheDocument(),
+    )
     expect(screen.queryByText("載入中")).not.toBeInTheDocument()
     expect(mealCalls).toBe(2)
   })
@@ -403,7 +463,9 @@ describe("App", () => {
     await screen.findByLabelText("AI 分析結果")
     await user.click(screen.getByRole("button", { name: "加入餐點資料集" }))
 
-    expect(await screen.findByText("後端暫時無法連線，已先儲存在本機資料集。")).toBeInTheDocument()
+    expect(await screen.findByText("後端新增失敗，已暫存在此裝置。")).toBeInTheDocument()
+    expect(screen.getByText("此裝置有本機暫存餐點，其他裝置不會同步。")).toBeInTheDocument()
+    expect(screen.getByLabelText("本機暫存餐點數：1")).toBeInTheDocument()
     expect(window.localStorage.getItem("smartDiet.localUserMeals")).toContain("茶葉蛋")
   })
 
@@ -890,6 +952,7 @@ describe("App", () => {
     render(<App />)
 
     expect(await screen.findByText(/目前無法連線後端/)).toBeInTheDocument()
+    expect(screen.getByText("目前使用本機暫存資料。")).toBeInTheDocument()
     expect(screen.getByText(/9（離線示範）/)).toBeInTheDocument()
     expect(screen.getByText(/API 狀態：暫時無法連線/)).toBeInTheDocument()
   })
