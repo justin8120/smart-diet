@@ -1,0 +1,1962 @@
+[
+  {
+    "id": "eval_0001",
+    "split": "eval",
+    "category": "炸物 / 小吃",
+    "imagePath": "backend/data/image_dataset/eval/eval_0001.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0001",
+    "expectedMealName": "鹽酥雞",
+    "acceptableMealNames": [
+      "鹽酥雞"
+    ],
+    "mealType": "炸物 / 小吃",
+    "expectedTags": [
+      "炸物",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "鹽酥雞"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見鹽酥雞主體",
+      "構圖符合炸物 / 小吃常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0002",
+    "split": "eval",
+    "category": "炸物 / 小吃",
+    "imagePath": "backend/data/image_dataset/eval/eval_0002.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0002",
+    "expectedMealName": "臭豆腐",
+    "acceptableMealNames": [
+      "臭豆腐"
+    ],
+    "mealType": "炸物 / 小吃",
+    "expectedTags": [
+      "炸物",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "臭豆腐"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見臭豆腐主體",
+      "構圖符合炸物 / 小吃常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0003",
+    "split": "eval",
+    "category": "炸物 / 小吃",
+    "imagePath": "backend/data/image_dataset/eval/eval_0003.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0003",
+    "expectedMealName": "炸雞排",
+    "acceptableMealNames": [
+      "炸雞排",
+      "雞排",
+      "香雞排"
+    ],
+    "mealType": "炸物 / 小吃",
+    "expectedTags": [
+      "炸物",
+      "雞肉",
+      "高蛋白"
+    ],
+    "expectedMainIngredients": [
+      "雞肉",
+      "麵衣",
+      "油"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [
+      "雞排麵",
+      "雞胸肉便當",
+      "湯包"
+    ],
+    "visualEvidence": [
+      "可見炸雞排主體",
+      "構圖符合炸物 / 小吃常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      500,
+      750
+    ],
+    "estimatedProteinRange": [
+      25,
+      45
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0004",
+    "split": "eval",
+    "category": "炸物 / 小吃",
+    "imagePath": "backend/data/image_dataset/eval/eval_0004.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0004",
+    "expectedMealName": "臭豆腐",
+    "acceptableMealNames": [
+      "臭豆腐"
+    ],
+    "mealType": "炸物 / 小吃",
+    "expectedTags": [
+      "炸物",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "臭豆腐"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見臭豆腐主體",
+      "構圖符合炸物 / 小吃常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0005",
+    "split": "eval",
+    "category": "炸物 / 小吃",
+    "imagePath": "backend/data/image_dataset/eval/eval_0005.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0005",
+    "expectedMealName": "地瓜球",
+    "acceptableMealNames": [
+      "地瓜球"
+    ],
+    "mealType": "炸物 / 小吃",
+    "expectedTags": [
+      "炸物",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "地瓜球"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見地瓜球主體",
+      "構圖符合炸物 / 小吃常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0006",
+    "split": "eval",
+    "category": "便當",
+    "imagePath": "backend/data/image_dataset/eval/eval_0006.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0006",
+    "expectedMealName": "雞腿飯",
+    "acceptableMealNames": [
+      "雞腿飯"
+    ],
+    "mealType": "便當",
+    "expectedTags": [
+      "便當",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "雞腿飯",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見雞腿飯主體",
+      "構圖符合便當常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0007",
+    "split": "eval",
+    "category": "便當",
+    "imagePath": "backend/data/image_dataset/eval/eval_0007.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0007",
+    "expectedMealName": "排骨飯",
+    "acceptableMealNames": [
+      "排骨飯"
+    ],
+    "mealType": "便當",
+    "expectedTags": [
+      "便當",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "排骨飯",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見排骨飯主體",
+      "構圖符合便當常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0008",
+    "split": "eval",
+    "category": "便當",
+    "imagePath": "backend/data/image_dataset/eval/eval_0008.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0008",
+    "expectedMealName": "魚排飯",
+    "acceptableMealNames": [
+      "魚排飯"
+    ],
+    "mealType": "便當",
+    "expectedTags": [
+      "便當",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "魚排飯",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見魚排飯主體",
+      "構圖符合便當常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0009",
+    "split": "eval",
+    "category": "便當",
+    "imagePath": "backend/data/image_dataset/eval/eval_0009.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0009",
+    "expectedMealName": "舒肥雞胸便當",
+    "acceptableMealNames": [
+      "舒肥雞胸便當"
+    ],
+    "mealType": "便當",
+    "expectedTags": [
+      "便當",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "舒肥雞胸",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見舒肥雞胸便當主體",
+      "構圖符合便當常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0010",
+    "split": "eval",
+    "category": "便當",
+    "imagePath": "backend/data/image_dataset/eval/eval_0010.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0010",
+    "expectedMealName": "滷肉便當",
+    "acceptableMealNames": [
+      "滷肉便當"
+    ],
+    "mealType": "便當",
+    "expectedTags": [
+      "便當",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "滷肉",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見滷肉便當主體",
+      "構圖符合便當常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0011",
+    "split": "eval",
+    "category": "飯類 / 丼飯",
+    "imagePath": "backend/data/image_dataset/eval/eval_0011.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0011",
+    "expectedMealName": "雞肉飯",
+    "acceptableMealNames": [
+      "雞肉飯"
+    ],
+    "mealType": "飯類 / 丼飯",
+    "expectedTags": [
+      "飯類",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "雞肉飯",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見雞肉飯主體",
+      "構圖符合飯類 / 丼飯常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0012",
+    "split": "eval",
+    "category": "飯類 / 丼飯",
+    "imagePath": "backend/data/image_dataset/eval/eval_0012.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0012",
+    "expectedMealName": "牛丼",
+    "acceptableMealNames": [
+      "牛丼"
+    ],
+    "mealType": "飯類 / 丼飯",
+    "expectedTags": [
+      "飯類",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "牛丼",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見牛丼主體",
+      "構圖符合飯類 / 丼飯常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0013",
+    "split": "eval",
+    "category": "飯類 / 丼飯",
+    "imagePath": "backend/data/image_dataset/eval/eval_0013.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0013",
+    "expectedMealName": "咖哩飯",
+    "acceptableMealNames": [
+      "咖哩飯"
+    ],
+    "mealType": "飯類 / 丼飯",
+    "expectedTags": [
+      "飯類",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "咖哩飯",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見咖哩飯主體",
+      "構圖符合飯類 / 丼飯常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0014",
+    "split": "eval",
+    "category": "飯類 / 丼飯",
+    "imagePath": "backend/data/image_dataset/eval/eval_0014.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0014",
+    "expectedMealName": "親子丼",
+    "acceptableMealNames": [
+      "親子丼"
+    ],
+    "mealType": "飯類 / 丼飯",
+    "expectedTags": [
+      "飯類",
+      "雞肉",
+      "日式"
+    ],
+    "expectedMainIngredients": [
+      "雞肉",
+      "雞蛋",
+      "白飯"
+    ],
+    "expectedAllergens": [
+      "蛋",
+      "大豆",
+      "麩質"
+    ],
+    "forbiddenPredictions": [
+      "豚丼",
+      "牛丼"
+    ],
+    "visualEvidence": [
+      "可見親子丼主體",
+      "構圖符合飯類 / 丼飯常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      550,
+      800
+    ],
+    "estimatedProteinRange": [
+      25,
+      40
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0015",
+    "split": "eval",
+    "category": "飯類 / 丼飯",
+    "imagePath": "backend/data/image_dataset/eval/eval_0015.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0015",
+    "expectedMealName": "牛丼",
+    "acceptableMealNames": [
+      "牛丼"
+    ],
+    "mealType": "飯類 / 丼飯",
+    "expectedTags": [
+      "飯類",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "牛丼",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見牛丼主體",
+      "構圖符合飯類 / 丼飯常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0016",
+    "split": "eval",
+    "category": "麵類",
+    "imagePath": "backend/data/image_dataset/eval/eval_0016.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0016",
+    "expectedMealName": "牛肉麵",
+    "acceptableMealNames": [
+      "牛肉麵"
+    ],
+    "mealType": "麵類",
+    "expectedTags": [
+      "麵類",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "牛肉麵",
+      "麵條",
+      "蔬菜"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見牛肉麵主體",
+      "構圖符合麵類常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0017",
+    "split": "eval",
+    "category": "麵類",
+    "imagePath": "backend/data/image_dataset/eval/eval_0017.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0017",
+    "expectedMealName": "麻醬麵",
+    "acceptableMealNames": [
+      "麻醬麵"
+    ],
+    "mealType": "麵類",
+    "expectedTags": [
+      "麵類",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "麻醬麵",
+      "麵條",
+      "蔬菜"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見麻醬麵主體",
+      "構圖符合麵類常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0018",
+    "split": "eval",
+    "category": "麵類",
+    "imagePath": "backend/data/image_dataset/eval/eval_0018.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0018",
+    "expectedMealName": "海鮮烏龍麵",
+    "acceptableMealNames": [
+      "海鮮烏龍麵"
+    ],
+    "mealType": "麵類",
+    "expectedTags": [
+      "麵類",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "海鮮烏龍麵",
+      "麵條",
+      "蔬菜"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見海鮮烏龍麵主體",
+      "構圖符合麵類常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0019",
+    "split": "eval",
+    "category": "麵類",
+    "imagePath": "backend/data/image_dataset/eval/eval_0019.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0019",
+    "expectedMealName": "牛排鐵板麵",
+    "acceptableMealNames": [
+      "牛排鐵板麵"
+    ],
+    "mealType": "麵類",
+    "expectedTags": [
+      "麵類",
+      "牛肉",
+      "高蛋白"
+    ],
+    "expectedMainIngredients": [
+      "牛肉",
+      "麵條",
+      "雞蛋"
+    ],
+    "expectedAllergens": [
+      "麩質",
+      "蛋"
+    ],
+    "forbiddenPredictions": [
+      "牛排",
+      "牛肉麵"
+    ],
+    "visualEvidence": [
+      "可見牛排鐵板麵主體",
+      "構圖符合麵類常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      650,
+      950
+    ],
+    "estimatedProteinRange": [
+      30,
+      50
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0020",
+    "split": "eval",
+    "category": "麵類",
+    "imagePath": "backend/data/image_dataset/eval/eval_0020.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0020",
+    "expectedMealName": "餛飩麵",
+    "acceptableMealNames": [
+      "餛飩麵"
+    ],
+    "mealType": "麵類",
+    "expectedTags": [
+      "麵類",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "餛飩麵",
+      "麵條",
+      "蔬菜"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見餛飩麵主體",
+      "構圖符合麵類常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0021",
+    "split": "eval",
+    "category": "早餐",
+    "imagePath": "backend/data/image_dataset/eval/eval_0021.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0021",
+    "expectedMealName": "起司蛋餅",
+    "acceptableMealNames": [
+      "起司蛋餅"
+    ],
+    "mealType": "早餐",
+    "expectedTags": [
+      "早餐",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "起司蛋餅",
+      "麵粉",
+      "雞蛋"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見起司蛋餅主體",
+      "構圖符合早餐常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0022",
+    "split": "eval",
+    "category": "早餐",
+    "imagePath": "backend/data/image_dataset/eval/eval_0022.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0022",
+    "expectedMealName": "肉蛋吐司",
+    "acceptableMealNames": [
+      "肉蛋吐司"
+    ],
+    "mealType": "早餐",
+    "expectedTags": [
+      "早餐",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "肉蛋吐司",
+      "麵粉",
+      "雞蛋"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見肉蛋吐司主體",
+      "構圖符合早餐常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0023",
+    "split": "eval",
+    "category": "早餐",
+    "imagePath": "backend/data/image_dataset/eval/eval_0023.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0023",
+    "expectedMealName": "飯糰",
+    "acceptableMealNames": [
+      "飯糰"
+    ],
+    "mealType": "早餐",
+    "expectedTags": [
+      "早餐",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "飯糰",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見飯糰主體",
+      "構圖符合早餐常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0024",
+    "split": "eval",
+    "category": "早餐",
+    "imagePath": "backend/data/image_dataset/eval/eval_0024.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0024",
+    "expectedMealName": "滷蛋",
+    "acceptableMealNames": [
+      "滷蛋"
+    ],
+    "mealType": "早餐",
+    "expectedTags": [
+      "早餐",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "滷蛋"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見滷蛋主體",
+      "構圖符合早餐常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0025",
+    "split": "eval",
+    "category": "早餐",
+    "imagePath": "backend/data/image_dataset/eval/eval_0025.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0025",
+    "expectedMealName": "蔬菜蛋吐司",
+    "acceptableMealNames": [
+      "蔬菜蛋吐司"
+    ],
+    "mealType": "早餐",
+    "expectedTags": [
+      "早餐",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "蔬菜蛋吐司",
+      "麵粉",
+      "雞蛋"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見蔬菜蛋吐司主體",
+      "構圖符合早餐常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0026",
+    "split": "eval",
+    "category": "日式 / 速食",
+    "imagePath": "backend/data/image_dataset/eval/eval_0026.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0026",
+    "expectedMealName": "豬排丼",
+    "acceptableMealNames": [
+      "豬排丼"
+    ],
+    "mealType": "日式 / 速食",
+    "expectedTags": [
+      "日式",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "豬排丼",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見豬排丼主體",
+      "構圖符合日式 / 速食常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0027",
+    "split": "eval",
+    "category": "日式 / 速食",
+    "imagePath": "backend/data/image_dataset/eval/eval_0027.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0027",
+    "expectedMealName": "炸蝦丼",
+    "acceptableMealNames": [
+      "炸蝦丼"
+    ],
+    "mealType": "日式 / 速食",
+    "expectedTags": [
+      "日式",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "炸蝦丼",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見炸蝦丼主體",
+      "構圖符合日式 / 速食常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0028",
+    "split": "eval",
+    "category": "日式 / 速食",
+    "imagePath": "backend/data/image_dataset/eval/eval_0028.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0028",
+    "expectedMealName": "薯條",
+    "acceptableMealNames": [
+      "薯條"
+    ],
+    "mealType": "日式 / 速食",
+    "expectedTags": [
+      "日式",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "薯條"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見薯條主體",
+      "構圖符合日式 / 速食常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0029",
+    "split": "eval",
+    "category": "日式 / 速食",
+    "imagePath": "backend/data/image_dataset/eval/eval_0029.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0029",
+    "expectedMealName": "咖哩豬排飯",
+    "acceptableMealNames": [
+      "咖哩豬排飯"
+    ],
+    "mealType": "日式 / 速食",
+    "expectedTags": [
+      "飯類",
+      "豬肉",
+      "炸物"
+    ],
+    "expectedMainIngredients": [
+      "豬排",
+      "白飯",
+      "咖哩"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [
+      "豬排丼",
+      "咖哩飯"
+    ],
+    "visualEvidence": [
+      "可見咖哩豬排飯主體",
+      "構圖符合日式 / 速食常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      750,
+      1050
+    ],
+    "estimatedProteinRange": [
+      25,
+      40
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0030",
+    "split": "eval",
+    "category": "日式 / 速食",
+    "imagePath": "backend/data/image_dataset/eval/eval_0030.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0030",
+    "expectedMealName": "炸魚堡",
+    "acceptableMealNames": [
+      "炸魚堡"
+    ],
+    "mealType": "日式 / 速食",
+    "expectedTags": [
+      "日式",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "炸魚堡"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見炸魚堡主體",
+      "構圖符合日式 / 速食常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0031",
+    "split": "eval",
+    "category": "健康餐",
+    "imagePath": "backend/data/image_dataset/eval/eval_0031.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0031",
+    "expectedMealName": "舒肥雞胸餐",
+    "acceptableMealNames": [
+      "舒肥雞胸餐"
+    ],
+    "mealType": "健康餐",
+    "expectedTags": [
+      "健康餐",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "舒肥雞胸"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見舒肥雞胸餐主體",
+      "構圖符合健康餐常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0032",
+    "split": "eval",
+    "category": "健康餐",
+    "imagePath": "backend/data/image_dataset/eval/eval_0032.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0032",
+    "expectedMealName": "豆腐蔬菜餐",
+    "acceptableMealNames": [
+      "豆腐蔬菜餐"
+    ],
+    "mealType": "健康餐",
+    "expectedTags": [
+      "健康餐",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "豆腐蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見豆腐蔬菜餐主體",
+      "構圖符合健康餐常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0033",
+    "split": "eval",
+    "category": "健康餐",
+    "imagePath": "backend/data/image_dataset/eval/eval_0033.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0033",
+    "expectedMealName": "烤雞腿健康餐",
+    "acceptableMealNames": [
+      "烤雞腿健康餐"
+    ],
+    "mealType": "健康餐",
+    "expectedTags": [
+      "健康餐",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "烤雞腿"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見烤雞腿健康餐主體",
+      "構圖符合健康餐常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0034",
+    "split": "eval",
+    "category": "健康餐",
+    "imagePath": "backend/data/image_dataset/eval/eval_0034.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0034",
+    "expectedMealName": "牛肉健康餐",
+    "acceptableMealNames": [
+      "牛肉健康餐"
+    ],
+    "mealType": "健康餐",
+    "expectedTags": [
+      "健康餐",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "牛肉"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見牛肉健康餐主體",
+      "構圖符合健康餐常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0035",
+    "split": "eval",
+    "category": "健康餐",
+    "imagePath": "backend/data/image_dataset/eval/eval_0035.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0035",
+    "expectedMealName": "藜麥雞胸餐",
+    "acceptableMealNames": [
+      "藜麥雞胸餐"
+    ],
+    "mealType": "健康餐",
+    "expectedTags": [
+      "健康餐",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "藜麥雞胸"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見藜麥雞胸餐主體",
+      "構圖符合健康餐常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0036",
+    "split": "eval",
+    "category": "素食 / 蔬食",
+    "imagePath": "backend/data/image_dataset/eval/eval_0036.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0036",
+    "expectedMealName": "蔬食便當",
+    "acceptableMealNames": [
+      "蔬食便當"
+    ],
+    "mealType": "素食 / 蔬食",
+    "expectedTags": [
+      "素食",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "蔬食",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見蔬食便當主體",
+      "構圖符合素食 / 蔬食常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0037",
+    "split": "eval",
+    "category": "素食 / 蔬食",
+    "imagePath": "backend/data/image_dataset/eval/eval_0037.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0037",
+    "expectedMealName": "豆腐蔬菜飯",
+    "acceptableMealNames": [
+      "豆腐蔬菜飯"
+    ],
+    "mealType": "素食 / 蔬食",
+    "expectedTags": [
+      "素食",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "豆腐蔬菜飯",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見豆腐蔬菜飯主體",
+      "構圖符合素食 / 蔬食常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0038",
+    "split": "eval",
+    "category": "素食 / 蔬食",
+    "imagePath": "backend/data/image_dataset/eval/eval_0038.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0038",
+    "expectedMealName": "素食滷味",
+    "acceptableMealNames": [
+      "素食滷味"
+    ],
+    "mealType": "素食 / 蔬食",
+    "expectedTags": [
+      "素食",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "素食滷味"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見素食滷味主體",
+      "構圖符合素食 / 蔬食常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0039",
+    "split": "eval",
+    "category": "素食 / 蔬食",
+    "imagePath": "backend/data/image_dataset/eval/eval_0039.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0039",
+    "expectedMealName": "番茄蔬菜麵",
+    "acceptableMealNames": [
+      "番茄蔬菜麵"
+    ],
+    "mealType": "素食 / 蔬食",
+    "expectedTags": [
+      "素食",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "番茄蔬菜麵",
+      "麵條",
+      "蔬菜"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見番茄蔬菜麵主體",
+      "構圖符合素食 / 蔬食常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0040",
+    "split": "eval",
+    "category": "素食 / 蔬食",
+    "imagePath": "backend/data/image_dataset/eval/eval_0040.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0040",
+    "expectedMealName": "素咖哩飯",
+    "acceptableMealNames": [
+      "素咖哩飯"
+    ],
+    "mealType": "素食 / 蔬食",
+    "expectedTags": [
+      "素食",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "素咖哩飯",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見素咖哩飯主體",
+      "構圖符合素食 / 蔬食常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      350,
+      700
+    ],
+    "estimatedProteinRange": [
+      10,
+      35
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0041",
+    "split": "eval",
+    "category": "甜點 / 飲品 / 水果",
+    "imagePath": "backend/data/image_dataset/eval/eval_0041.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0041",
+    "expectedMealName": "蛋糕",
+    "acceptableMealNames": [
+      "蛋糕"
+    ],
+    "mealType": "甜點 / 飲品 / 水果",
+    "expectedTags": [
+      "甜點",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "蛋糕"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見蛋糕主體",
+      "構圖符合甜點 / 飲品 / 水果常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      80,
+      500
+    ],
+    "estimatedProteinRange": [
+      1,
+      12
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0042",
+    "split": "eval",
+    "category": "甜點 / 飲品 / 水果",
+    "imagePath": "backend/data/image_dataset/eval/eval_0042.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0042",
+    "expectedMealName": "西瓜",
+    "acceptableMealNames": [
+      "西瓜"
+    ],
+    "mealType": "甜點 / 飲品 / 水果",
+    "expectedTags": [
+      "水果",
+      "低脂",
+      "清爽"
+    ],
+    "expectedMainIngredients": [
+      "西瓜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [
+      "紅色甜點",
+      "莓果蛋糕"
+    ],
+    "visualEvidence": [
+      "可見西瓜主體",
+      "構圖符合甜點 / 飲品 / 水果常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      40,
+      180
+    ],
+    "estimatedProteinRange": [
+      1,
+      4
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0043",
+    "split": "eval",
+    "category": "甜點 / 飲品 / 水果",
+    "imagePath": "backend/data/image_dataset/eval/eval_0043.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0043",
+    "expectedMealName": "無糖綠茶",
+    "acceptableMealNames": [
+      "無糖綠茶",
+      "綠茶"
+    ],
+    "mealType": "甜點 / 飲品 / 水果",
+    "expectedTags": [
+      "甜點",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "無糖綠茶"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見無糖綠茶主體",
+      "構圖符合甜點 / 飲品 / 水果常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      0,
+      350
+    ],
+    "estimatedProteinRange": [
+      0,
+      10
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0044",
+    "split": "eval",
+    "category": "甜點 / 飲品 / 水果",
+    "imagePath": "backend/data/image_dataset/eval/eval_0044.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0044",
+    "expectedMealName": "奶茶",
+    "acceptableMealNames": [
+      "奶茶"
+    ],
+    "mealType": "甜點 / 飲品 / 水果",
+    "expectedTags": [
+      "甜點",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "奶茶"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見奶茶主體",
+      "構圖符合甜點 / 飲品 / 水果常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      0,
+      350
+    ],
+    "estimatedProteinRange": [
+      0,
+      10
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0045",
+    "split": "eval",
+    "category": "甜點 / 飲品 / 水果",
+    "imagePath": "backend/data/image_dataset/eval/eval_0045.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0045",
+    "expectedMealName": "麵包",
+    "acceptableMealNames": [
+      "麵包"
+    ],
+    "mealType": "甜點 / 飲品 / 水果",
+    "expectedTags": [
+      "甜點",
+      "台灣常見餐點"
+    ],
+    "expectedMainIngredients": [
+      "麵包",
+      "麵條",
+      "蔬菜"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [],
+    "visualEvidence": [
+      "可見麵包主體",
+      "構圖符合甜點 / 飲品 / 水果常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      80,
+      500
+    ],
+    "estimatedProteinRange": [
+      1,
+      12
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0046",
+    "split": "eval",
+    "category": "容易誤判案例",
+    "imagePath": "backend/data/image_dataset/eval/eval_0046.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0046",
+    "expectedMealName": "炸雞排",
+    "acceptableMealNames": [
+      "炸雞排",
+      "雞排",
+      "香雞排"
+    ],
+    "mealType": "容易誤判案例",
+    "expectedTags": [
+      "炸物",
+      "雞肉",
+      "高蛋白"
+    ],
+    "expectedMainIngredients": [
+      "雞肉",
+      "麵衣",
+      "油"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [
+      "雞排麵",
+      "雞胸肉便當",
+      "湯包"
+    ],
+    "visualEvidence": [
+      "可見炸雞排主體",
+      "構圖符合容易誤判案例常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      500,
+      750
+    ],
+    "estimatedProteinRange": [
+      25,
+      45
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0047",
+    "split": "eval",
+    "category": "容易誤判案例",
+    "imagePath": "backend/data/image_dataset/eval/eval_0047.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0047",
+    "expectedMealName": "湯包",
+    "acceptableMealNames": [
+      "湯包",
+      "小籠湯包"
+    ],
+    "mealType": "容易誤判案例",
+    "expectedTags": [
+      "麵食",
+      "豬肉",
+      "蒸物"
+    ],
+    "expectedMainIngredients": [
+      "麵皮",
+      "豬肉",
+      "肉汁"
+    ],
+    "expectedAllergens": [
+      "麩質"
+    ],
+    "forbiddenPredictions": [
+      "花生",
+      "水餃"
+    ],
+    "visualEvidence": [
+      "可見湯包主體",
+      "構圖符合容易誤判案例常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      250,
+      450
+    ],
+    "estimatedProteinRange": [
+      10,
+      22
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0048",
+    "split": "eval",
+    "category": "容易誤判案例",
+    "imagePath": "backend/data/image_dataset/eval/eval_0048.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0048",
+    "expectedMealName": "牛排鐵板麵",
+    "acceptableMealNames": [
+      "牛排鐵板麵"
+    ],
+    "mealType": "容易誤判案例",
+    "expectedTags": [
+      "麵類",
+      "牛肉",
+      "高蛋白"
+    ],
+    "expectedMainIngredients": [
+      "牛肉",
+      "麵條",
+      "雞蛋"
+    ],
+    "expectedAllergens": [
+      "麩質",
+      "蛋"
+    ],
+    "forbiddenPredictions": [
+      "牛排",
+      "牛肉麵"
+    ],
+    "visualEvidence": [
+      "可見牛排鐵板麵主體",
+      "構圖符合容易誤判案例常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      650,
+      950
+    ],
+    "estimatedProteinRange": [
+      30,
+      50
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0049",
+    "split": "eval",
+    "category": "容易誤判案例",
+    "imagePath": "backend/data/image_dataset/eval/eval_0049.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0049",
+    "expectedMealName": "雞胸肉便當",
+    "acceptableMealNames": [
+      "雞胸肉便當",
+      "雞胸便當",
+      "雞胸餐盒"
+    ],
+    "mealType": "容易誤判案例",
+    "expectedTags": [
+      "便當",
+      "雞肉",
+      "高蛋白"
+    ],
+    "expectedMainIngredients": [
+      "雞胸肉",
+      "白飯",
+      "蔬菜"
+    ],
+    "expectedAllergens": [],
+    "forbiddenPredictions": [
+      "雞腿飯",
+      "一般雞腿飯"
+    ],
+    "visualEvidence": [
+      "可見雞胸肉便當主體",
+      "構圖符合容易誤判案例常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      450,
+      700
+    ],
+    "estimatedProteinRange": [
+      30,
+      50
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  },
+  {
+    "id": "eval_0050",
+    "split": "eval",
+    "category": "容易誤判案例",
+    "imagePath": "backend/data/image_dataset/eval/eval_0050.jpg",
+    "imageUrl": "",
+    "imageSha256": "",
+    "sourceGroup": "eval_0050",
+    "expectedMealName": "肉桂捲",
+    "acceptableMealNames": [
+      "肉桂捲",
+      "肉桂卷"
+    ],
+    "mealType": "容易誤判案例",
+    "expectedTags": [
+      "甜點",
+      "烘焙",
+      "高糖"
+    ],
+    "expectedMainIngredients": [
+      "麵粉",
+      "肉桂",
+      "糖"
+    ],
+    "expectedAllergens": [
+      "麩質",
+      "奶"
+    ],
+    "forbiddenPredictions": [
+      "麵包",
+      "可頌"
+    ],
+    "visualEvidence": [
+      "可見肉桂捲主體",
+      "構圖符合容易誤判案例常見盛裝方式"
+    ],
+    "estimatedCaloriesRange": [
+      300,
+      550
+    ],
+    "estimatedProteinRange": [
+      4,
+      10
+    ],
+    "notes": "僅依圖片可見線索判斷；不可補入未出現的配菜或主食。"
+  }
+]

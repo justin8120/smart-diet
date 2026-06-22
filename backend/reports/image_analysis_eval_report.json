@@ -1,0 +1,298 @@
+{
+  "dataset": {
+    "manifest": "C:\\Users\\justi\\Desktop\\project\\backend\\data\\image_dataset\\eval_manifest.json",
+    "totalRecords": 50,
+    "evaluatedRecords": 0,
+    "unavailableRecords": 50,
+    "categoryDistribution": {
+      "炸物 / 小吃": 5,
+      "便當": 5,
+      "飯類 / 丼飯": 5,
+      "麵類": 5,
+      "早餐": 5,
+      "日式 / 速食": 5,
+      "健康餐": 5,
+      "素食 / 蔬食": 5,
+      "甜點 / 飲品 / 水果": 5,
+      "容易誤判案例": 5
+    },
+    "splitMethod": "每類固定交錯切分，train/eval 各 50 筆",
+    "leakageChecked": true,
+    "leakage": {}
+  },
+  "metrics": {
+    "exactMatchAccuracy": null,
+    "acceptableNameAccuracy": null,
+    "mealTypeAccuracy": null,
+    "tag": {
+      "precision": null,
+      "recall": null,
+      "f1": null
+    },
+    "ingredient": {
+      "precision": null,
+      "recall": null,
+      "f1": null
+    },
+    "allergenRecall": null,
+    "forbiddenPredictionCount": 0,
+    "calorieRangeAccuracy": null,
+    "proteinRangeAccuracy": null,
+    "highConfidenceErrorCount": 0
+  },
+  "confusionPairs": [],
+  "commonErrorTypes": {},
+  "results": [
+    {
+      "id": "eval_0001",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0002",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0003",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0004",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0005",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0006",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0007",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0008",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0009",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0010",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0011",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0012",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0013",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0014",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0015",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0016",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0017",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0018",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0019",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0020",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0021",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0022",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0023",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0024",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0025",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0026",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0027",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0028",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0029",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0030",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0031",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0032",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0033",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0034",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0035",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0036",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0037",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0038",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0039",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0040",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0041",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0042",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0043",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0044",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0045",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0046",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0047",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0048",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0049",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    },
+    {
+      "id": "eval_0050",
+      "status": "unavailable",
+      "error": "no available imagePath or imageUrl"
+    }
+  ],
+  "limitations": "未評估樣本不納入分母；本報告不是醫療級營養或專業影像辨識認證。"
+}
