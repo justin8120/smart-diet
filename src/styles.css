@@ -289,6 +289,28 @@ h3 {
   margin: 0;
 }
 
+.dataset-sync-panel {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dataset-sync-panel .dataset-sync-actions {
+  margin-bottom: 0;
+}
+
+.local-meal-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid #d8e5df;
+  border-radius: 8px;
+  color: #52677d;
+  background: #fff;
+}
+
 .recommendation-panel,
 .analysis-panel {
   display: grid;

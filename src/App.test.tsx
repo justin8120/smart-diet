@@ -395,12 +395,121 @@ describe("App", () => {
     await screen.findByLabelText("本機暫存餐點數：2")
     await user.click(screen.getByRole("button", { name: "同步本機暫存至後端" }))
 
-    expect(await screen.findByText("部分資料同步失敗，已保留在此裝置")).toBeInTheDocument()
+    expect(
+      await screen.findByText("1 筆資料同步失敗：保留餐點後端拒絕資料格式，已保留在此裝置。"),
+    ).toBeInTheDocument()
     expect(screen.getByLabelText("本機暫存餐點數：1")).toBeInTheDocument()
     const storedMeals = JSON.parse(
       window.localStorage.getItem("smartDiet.localUserMeals") ?? "[]",
-    ) as Array<{ name: string; pendingSync: boolean }>
-    expect(storedMeals).toEqual([expect.objectContaining({ name: "保留餐點", pendingSync: true })])
+    ) as Array<{ name: string; pendingSync: boolean; syncError: string }>
+    expect(storedMeals).toEqual([
+      expect.objectContaining({
+        name: "保留餐點",
+        pendingSync: true,
+        syncError: "後端拒絕資料格式",
+      }),
+    ])
+  })
+
+  test("sanitizes a legacy manual meal and excludes local-only fields from POST", async () => {
+    const legacyMeal = {
+      ...backendMealToMeal(analysisMeal),
+      id: "legacy-manual",
+      name: "舊版手動餐點",
+      sourceType: "manual",
+      pendingSync: true,
+      localOnly: true,
+      syncError: "舊錯誤",
+      debugPayload: { trace: true },
+      calories: "450",
+      protein: "20",
+    }
+    window.localStorage.setItem("smartDiet.localUserMeals", JSON.stringify([legacyMeal]))
+    let postedPayload: Record<string, unknown> | null = null
+    const onlineApi = mockOnlineApi()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).endsWith("/api/meals") && init?.method === "POST") {
+          postedPayload = JSON.parse(String(init.body)) as Record<string, unknown>
+          return jsonResponse({ meal: postedPayload, action: "created" })
+        }
+        return onlineApi(input, init)
+      }),
+    )
+
+    render(<App />)
+    await screen.findByLabelText("本機暫存餐點數：1")
+    await userEvent.click(screen.getByRole("button", { name: "同步本機暫存至後端" }))
+
+    await screen.findByText("本機暫存餐點已同步至後端")
+    expect(postedPayload).toEqual(
+      expect.objectContaining({
+        sourceType: "text",
+        estimatedCalories: 450,
+        estimatedProtein: 20,
+      }),
+    )
+    expect(postedPayload).not.toHaveProperty("pendingSync")
+    expect(postedPayload).not.toHaveProperty("localOnly")
+    expect(postedPayload).not.toHaveProperty("syncError")
+    expect(postedPayload).not.toHaveProperty("debugPayload")
+    expect(window.localStorage.getItem("smartDiet.localUserMeals")).toBeNull()
+  })
+
+  test("does not POST a legacy meal without ingredients and keeps its specific sync error", async () => {
+    window.localStorage.setItem(
+      "smartDiet.localUserMeals",
+      JSON.stringify([
+        {
+          ...backendMealToMeal(analysisMeal),
+          id: "missing-ingredients",
+          name: "炸雞排",
+          ingredients: "雞肉",
+        },
+      ]),
+    )
+    const fetchMock = vi.fn(mockOnlineApi())
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<App />)
+    await screen.findByLabelText("本機暫存餐點數：1")
+    await userEvent.click(screen.getByRole("button", { name: "同步本機暫存至後端" }))
+
+    expect(
+      await screen.findByText("1 筆資料同步失敗：炸雞排缺少主要食材，已保留在此裝置。"),
+    ).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.filter(
+        ([input, init]) => String(input).endsWith("/api/meals") && init?.method === "POST",
+      ),
+    ).toHaveLength(0)
+    expect(JSON.parse(window.localStorage.getItem("smartDiet.localUserMeals") ?? "[]")).toEqual([
+      expect.objectContaining({ pendingSync: true, syncError: "缺少主要食材" }),
+    ])
+  })
+
+  test("removes a failed local meal from localStorage", async () => {
+    window.localStorage.setItem(
+      "smartDiet.localUserMeals",
+      JSON.stringify([
+        {
+          ...backendMealToMeal(analysisMeal),
+          id: "removable-local",
+          name: "待移除餐點",
+          ingredients: [],
+          syncError: "缺少主要食材",
+        },
+      ]),
+    )
+
+    render(<App />)
+    await screen.findByLabelText("本機暫存餐點數：1")
+    await userEvent.click(screen.getByRole("button", { name: "移除此本機暫存" }))
+
+    expect(screen.getByLabelText("本機暫存餐點數：0")).toBeInTheDocument()
+    expect(window.localStorage.getItem("smartDiet.localUserMeals")).toBeNull()
+    expect(screen.getByText("已移除此本機暫存餐點。")).toBeInTheDocument()
   })
 
   test("retries health check and eventually shows connected backend status", async () => {

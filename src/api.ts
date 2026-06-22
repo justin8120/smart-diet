@@ -128,6 +128,73 @@ export function mealToBackendMeal(meal: Meal): BackendMeal {
   }
 }
 
+const defaultLocalMealReason = "使用者新增餐點資料，可作為後續推薦依據。"
+
+export class LocalMealValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "LocalMealValidationError"
+  }
+}
+
+/** Convert legacy/local-only meal data into the exact POST /api/meals shape. */
+export function sanitizeLocalMealForBackend(meal: Meal): BackendMeal {
+  const mealName = typeof meal.name === "string" ? meal.name.trim() : ""
+  if (!mealName) throw new LocalMealValidationError("餐點名稱不足")
+
+  const mealType =
+    typeof meal.type === "string" && meal.type.trim() ? meal.type.trim() : "使用者新增"
+  const tags = Array.isArray(meal.tags)
+    ? meal.tags.filter((value) => typeof value === "string")
+    : []
+  const mainIngredients = Array.isArray(meal.ingredients)
+    ? meal.ingredients.filter((value) => typeof value === "string" && value.trim())
+    : []
+  if (mainIngredients.length === 0) {
+    throw new LocalMealValidationError("缺少主要食材")
+  }
+
+  const estimatedCalories = Number(meal.calories)
+  const calories = Number.isFinite(estimatedCalories) ? estimatedCalories : 0
+  const isBeverage = /飲品|飲料|茶|咖啡|果汁/.test(`${mealName} ${mealType} ${tags.join(" ")}`)
+  if (calories <= 0 && !isBeverage) {
+    throw new LocalMealValidationError("缺少有效熱量資料")
+  }
+
+  const estimatedProtein = Number(meal.protein)
+  const confidence = Number(meal.confidence)
+  const createdAt =
+    typeof meal.createdAt === "string" && !Number.isNaN(Date.parse(meal.createdAt))
+      ? meal.createdAt
+      : new Date().toISOString()
+  const reason = typeof meal.reason === "string" ? meal.reason.trim() : ""
+  const hasEngineeringReason = /fallback|rule-based|AI 服務無法使用/i.test(reason)
+
+  // Building a fresh object is intentional: pendingSync, localOnly, syncError and
+  // any unknown legacy/debug fields can never leak into the backend payload.
+  return {
+    id: typeof meal.id === "string" && meal.id.trim() ? meal.id : crypto.randomUUID(),
+    mealName,
+    mealType: calories <= 0 && isBeverage ? "飲品" : mealType,
+    estimatedCalories: calories,
+    estimatedProtein: Number.isFinite(estimatedProtein) ? estimatedProtein : 0,
+    tags,
+    mainIngredients,
+    allergens: Array.isArray(meal.allergens)
+      ? meal.allergens.filter((value) => typeof value === "string")
+      : [],
+    recommendationReason: reason && !hasEngineeringReason ? reason : defaultLocalMealReason,
+    confidence:
+      Number.isFinite(confidence) && confidence >= 0 && confidence <= 1 ? confidence : 0.6,
+    sourceType: sourceTypeValue(meal.sourceType),
+    createdAt,
+    isAiGenerated: typeof meal.isAiGenerated === "boolean" ? meal.isAiGenerated : false,
+    recommendedGoals: Array.isArray(meal.goals)
+      ? meal.goals.filter((value) => typeof value === "string")
+      : [],
+  }
+}
+
 export async function fetchHealth(): Promise<BackendHealth> {
   return request<BackendHealth>("/api/health")
 }
@@ -193,19 +260,27 @@ export type MealSyncResult = {
     savedMeal: Meal
     action: MealUpsertResponse["action"]
   }>
-  failed: Meal[]
+  failed: Array<{ meal: Meal; reason: string }>
 }
 
 export async function syncMealsToBackend(meals: Meal[]): Promise<MealSyncResult> {
   const successful: MealSyncResult["successful"] = []
-  const failed: Meal[] = []
+  const failed: MealSyncResult["failed"] = []
 
   for (const localMeal of meals) {
     try {
-      const { meal: savedMeal, action } = await addMeal(localMeal)
+      const sanitizedMeal = sanitizeLocalMealForBackend(localMeal)
+      const payload = await request<MealUpsertResponse>("/api/meals", {
+        method: "POST",
+        body: JSON.stringify(sanitizedMeal),
+      })
+      const savedMeal = backendMealToMeal(payload.meal)
+      const action = payload.action
       successful.push({ localMeal, savedMeal, action })
-    } catch {
-      failed.push(localMeal)
+    } catch (error) {
+      const reason = error instanceof LocalMealValidationError ? error.message : "後端拒絕資料格式"
+      if (import.meta.env.DEV) console.warn("Local meal sync failed", { localMeal, error })
+      failed.push({ meal: localMeal, reason })
     }
   }
 
@@ -296,8 +371,10 @@ function sourceTypeLabel(sourceType?: MealSourceType | BackendMeal["sourceType"]
   return "文字"
 }
 
-function sourceTypeValue(sourceType?: MealSourceType): BackendMeal["sourceType"] {
-  if (sourceType === "圖片") return "image"
-  if (sourceType === "連結") return "url"
+function sourceTypeValue(
+  sourceType?: MealSourceType | BackendMeal["sourceType"],
+): BackendMeal["sourceType"] {
+  if (sourceType === "圖片" || sourceType === "image") return "image"
+  if (sourceType === "連結" || sourceType === "url") return "url"
   return "text"
 }

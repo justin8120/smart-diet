@@ -402,7 +402,9 @@ function loadStoredMeals() {
     const payload = window.localStorage.getItem(localUserMealsKey)
     if (!payload) return []
     const parsed = JSON.parse(payload)
-    return Array.isArray(parsed) ? parsed.filter(isStoredMeal) : []
+    return Array.isArray(parsed)
+      ? parsed.map(normalizeStoredMeal).filter((meal) => meal !== null)
+      : []
   } catch {
     return []
   }
@@ -416,12 +418,48 @@ function saveStoredMeals(values: Meal[]) {
   window.localStorage.setItem(localUserMealsKey, JSON.stringify(values))
 }
 
-function isStoredMeal(value: unknown): value is Meal {
-  if (!value || typeof value !== "object") return false
-  const meal = value as Partial<Meal>
-  return (
-    typeof meal.name === "string" && Array.isArray(meal.ingredients) && Array.isArray(meal.tags)
-  )
+function normalizeStoredMeal(value: unknown): Meal | null {
+  if (!value || typeof value !== "object") return null
+  const meal = value as Record<string, unknown>
+  const name =
+    typeof meal.name === "string"
+      ? meal.name
+      : typeof meal.mealName === "string"
+        ? meal.mealName
+        : ""
+  const stringArray = (candidate: unknown) =>
+    Array.isArray(candidate)
+      ? candidate.filter((item): item is string => typeof item === "string")
+      : []
+  return {
+    id: typeof meal.id === "string" ? meal.id : crypto.randomUUID(),
+    name,
+    type:
+      typeof meal.type === "string"
+        ? meal.type
+        : typeof meal.mealType === "string"
+          ? meal.mealType
+          : "",
+    calories: (meal.calories ?? meal.estimatedCalories ?? 0) as number,
+    protein: (meal.protein ?? meal.estimatedProtein ?? 0) as number,
+    tags: stringArray(meal.tags),
+    goals: stringArray(meal.goals ?? meal.recommendedGoals),
+    ingredients: stringArray(meal.ingredients ?? meal.mainIngredients),
+    allergens: stringArray(meal.allergens),
+    reason:
+      typeof meal.reason === "string"
+        ? meal.reason
+        : typeof meal.recommendationReason === "string"
+          ? meal.recommendationReason
+          : "",
+    confidence: meal.confidence as number | undefined,
+    sourceType: meal.sourceType as Meal["sourceType"],
+    createdAt: meal.createdAt as string | undefined,
+    isAiGenerated: meal.isAiGenerated as boolean | undefined,
+    pendingSync: true,
+    localOnly: meal.localOnly as boolean | undefined,
+    syncError: typeof meal.syncError === "string" ? meal.syncError : undefined,
+  }
 }
 
 function normalizeMealNameKey(name: string) {
@@ -1297,7 +1335,11 @@ export function App() {
     setShowPersistenceNote(false)
 
     const { successful, failed } = await syncMealsToBackend(localUserMeals)
-    const remainingMeals = failed.map((meal) => ({ ...meal, pendingSync: true }))
+    const remainingMeals = failed.map(({ meal, reason }) => ({
+      ...meal,
+      pendingSync: true,
+      syncError: reason,
+    }))
     setLocalUserMeals(remainingMeals)
     saveStoredMeals(remainingMeals)
 
@@ -1320,12 +1362,24 @@ export function App() {
     }
 
     if (failed.length > 0) {
-      setSyncMessage("部分資料同步失敗，已保留在此裝置")
+      const summary = failed
+        .map(({ meal, reason }) => `${meal.name || "未命名餐點"}${reason}`)
+        .join("；")
+      setSyncMessage(`${failed.length} 筆資料同步失敗：${summary}，已保留在此裝置。`)
     } else {
       setSyncMessage("本機暫存餐點已同步至後端")
       setShowPersistenceNote(true)
     }
     setIsSyncingLocalMeals(false)
+  }
+
+  const handleRemoveLocalMeal = (mealId: string) => {
+    const nextLocalMeals = localUserMeals.filter((meal) => meal.id !== mealId)
+    setLocalUserMeals(nextLocalMeals)
+    saveStoredMeals(nextLocalMeals)
+    setMealDataset((current) => current.filter((meal) => meal.id !== mealId))
+    setRecommendedMeals((current) => current.filter((meal) => meal.id !== mealId))
+    setSyncMessage("已移除此本機暫存餐點。")
   }
 
   const handleRecommend = async () => {
@@ -1685,16 +1739,35 @@ export function App() {
             </div>
           </div>
           {localUserMeals.length > 0 ? (
-            <div className="dataset-sync-actions">
-              <p className="dataset-source-note">此裝置有本機暫存餐點，其他裝置不會同步。</p>
-              <button
-                className="utility-button"
-                type="button"
-                disabled={isSyncingLocalMeals}
-                onClick={handleSyncLocalMeals}
-              >
-                {isSyncingLocalMeals ? "同步中..." : "同步本機暫存至後端"}
-              </button>
+            <div className="dataset-sync-panel">
+              <div className="dataset-sync-actions">
+                <p className="dataset-source-note">此裝置有本機暫存餐點，其他裝置不會同步。</p>
+                <button
+                  className="utility-button"
+                  type="button"
+                  disabled={isSyncingLocalMeals}
+                  onClick={handleSyncLocalMeals}
+                >
+                  {isSyncingLocalMeals ? "同步中..." : "同步本機暫存至後端"}
+                </button>
+              </div>
+              {localUserMeals
+                .filter((meal) => meal.syncError)
+                .map((meal) => (
+                  <div className="local-meal-action" key={meal.id}>
+                    <span>
+                      {meal.name || "未命名餐點"}
+                      {meal.syncError ? `：${meal.syncError}` : ""}
+                    </span>
+                    <button
+                      className="utility-button"
+                      type="button"
+                      onClick={() => handleRemoveLocalMeal(meal.id)}
+                    >
+                      移除此本機暫存
+                    </button>
+                  </div>
+                ))}
             </div>
           ) : null}
           {syncMessage ? <p className="status-message">{syncMessage}</p> : null}
