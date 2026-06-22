@@ -36,7 +36,10 @@ AUTH_ERROR_DETAIL = "AI \u670d\u52d9\u9a57\u8b49\u5931\u6557\uff0c\u8acb\u6aa2\u
 TIMEOUT_ERROR_DETAIL = "AI \u5206\u6790\u903e\u6642\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66\u3002"
 JSON_ERROR_DETAIL = "AI \u56de\u50b3\u683c\u5f0f\u7570\u5e38\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66\u3002"
 AI_FAILURE_DETAIL = "AI \u5206\u6790\u66ab\u6642\u5931\u6557\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66\u6216\u88dc\u5145\u9910\u9ede\u540d\u7a31\u3002"
-INSUFFICIENT_DETAIL = "\u76ee\u524d\u8cc7\u8a0a\u4e0d\u8db3\uff0c\u8acb\u63d0\u4f9b\u66f4\u660e\u78ba\u7684\u9910\u9ede\u540d\u7a31\u3001\u5716\u7247\u6216\u9023\u7d50\u3002"
+INSUFFICIENT_DETAIL = (
+    "目前無法判斷完整餐點。若圖片是單一食材，請補充食材名稱；"
+    "若是餐點，請補充餐點名稱或主要配料。"
+)
 FALLBACK_NUTRITION_NOTE = "\u6b64\u70ba\u4f9d\u9910\u9ede\u540d\u7a31\u8207\u5716\u7247\u5916\u89c0\u63a8\u4f30\uff0c\u975e\u7cbe\u6e96\u71df\u990a\u6a19\u793a\u3002"
 
 SOURCE_TYPES = {"text", "image", "url"}
@@ -126,6 +129,18 @@ SOUP_DUMPLING = "\u6e6f\u5305"
 XIAOLONGBAO = "\u5c0f\u7c60\u5305"
 WATERMELON = "\u897f\u74dc"
 PEANUT = "\u82b1\u751f"
+INGREDIENT_HINT_ALIASES = {
+    "豬肉片": "豬肉片",
+    "雞胸肉": "雞胸肉",
+    "牛肉片": "牛肉片",
+    "花生": PEANUT,
+    "西瓜": WATERMELON,
+    "豆腐": "豆腐",
+    "雞蛋": "雞蛋",
+    "蛋": "雞蛋",
+    "青菜": "青菜",
+    "鮭魚": "鮭魚",
+}
 LIMITED_INFO_WARNING = "此結果為 AI 根據有限資訊推測，實際營養與成分仍需以包裝標示或店家資料為準。"
 PACKAGED_DESSERT_REASON = (
     "系統根據圖片檔名、文字提示或可見線索推測此項目為冰品或甜點。"
@@ -204,6 +219,10 @@ def analyze_text(text: str) -> MealAnalysisResult:
 async def analyze_image(file: UploadFile, hint: str = "") -> MealAnalysisResult:
     content = await file.read()
     media_type = file.content_type or "image/jpeg"
+    if media_type not in {"image/jpeg", "image/png", "image/webp"}:
+        raise HTTPException(status_code=415, detail="不支援此圖片格式，請使用 JPG、PNG 或 WebP。")
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="圖片檔案過大，請壓縮後再上傳。")
     encoded = base64.b64encode(content).decode("ascii")
     data_url = f"data:{media_type};base64,{encoded}"
     text_hint = hint.strip()
@@ -656,6 +675,8 @@ def _instructions(source_type: str) -> str:
         f"Allowed diet tags include {allowed_tags}. "
         f"Allergens should focus on {allergens} when applicable. "
         "If uncertain, lower confidence instead of using 1.0."
+        "Accept complete meals, single ingredients, semi-prepared foods, fruit, and drinks. "
+        "For a single ingredient, use a mealType beginning with 食材 / and include 食材 in tags."
     )
 
 
@@ -932,7 +953,8 @@ def merge_image_result_with_text_hint(
         return _merge_hint_constraints(image_result, weak_hint, hint_allergens, avoid_ingredients)
 
     if explicit_name:
-        result = _hint_result(explicit_name, "image", confidence=0.9)
+        confidence = 0.6 if _ingredient_hint_name(explicit_name) else 0.9
+        result = _hint_result(explicit_name, "image", confidence=confidence)
         return _merge_hint_constraints(result, "", hint_allergens, avoid_ingredients)
 
     if weak_hint and _is_uncertain_image_result(image_result):
@@ -982,6 +1004,10 @@ def _fallback_result(
                 confidence_cap=confidence,
             )
         if not _has_known_image_hint(text):
+            ingredient_hint = str(hint_info.get("explicitMealName") or "")
+            confidence_cap = confidence
+            if _ingredient_hint_name(ingredient_hint) and confidence is not None:
+                confidence_cap = max(confidence, 0.45)
             return _with_analysis_notice(
                 merge_image_result_with_text_hint(
                     _uncertain_image_result(confidence or 0.35),
@@ -990,7 +1016,7 @@ def _fallback_result(
                 ),
                 warning_message=warning_message,
                 nutrition_note=nutrition_note,
-                confidence_cap=confidence,
+                confidence_cap=confidence_cap,
             )
     meal_name = FALLBACK_MEAL_NAME
     meal_type = FALLBACK_MEAL_TYPE
@@ -1267,10 +1293,13 @@ def _has_known_image_hint(text: str) -> bool:
         "steak",
         "noodles",
     ]
-    return _has_any(normalized.lower(), hints)
+    return _has_any(normalized.lower(), [*hints, *INGREDIENT_HINT_ALIASES])
 
 
 def _explicit_hint_name(text: str) -> str | None:
+    ingredient_name = _ingredient_hint_name(text)
+    if ingredient_name and ingredient_name not in {PEANUT, WATERMELON}:
+        return ingredient_name
     patterns = [
         r"^\s*\u9019\u662f\s*(.+)$",
         r"^\s*\u5716\u7247\u662f\s*(.+)$",
@@ -1288,6 +1317,9 @@ def _explicit_hint_name(text: str) -> str | None:
 def _weak_hint_name(text: str, allow_restricted: bool = True) -> str | None:
     normalized = normalize_meal_name(text)
     lowered = normalized.lower()
+    ingredient_name = _ingredient_hint_name(normalized)
+    if ingredient_name and (allow_restricted or ingredient_name != PEANUT):
+        return ingredient_name
     if _is_butadon_text(lowered):
         return BUTADON
     if _is_soup_dumpling_hint(lowered):
@@ -1311,6 +1343,9 @@ def _clean_hint_name(value: str) -> str | None:
 
 def _hinted_image_result(text: str, confidence: float) -> MealAnalysisResult | None:
     normalized = normalize_meal_name(text).lower()
+    ingredient_name = _ingredient_hint_name(normalized)
+    if ingredient_name:
+        return _hint_result(ingredient_name, "image", confidence=min(max(confidence, 0.45), 0.8))
     if _is_fried_chicken_cutlet_hint(normalized):
         return _hint_result("\u70b8\u96de\u6392", "image", confidence=confidence)
     if _is_butadon_text(normalized):
@@ -1323,6 +1358,16 @@ def _hinted_image_result(text: str, confidence: float) -> MealAnalysisResult | N
         return _hint_result(WATERMELON, "image", confidence=confidence)
     if _is_peanut_hint(normalized):
         return _hint_result(PEANUT, "image", confidence=0.9)
+    return None
+
+
+def _ingredient_hint_name(text: str) -> str | None:
+    normalized = normalize_meal_name(normalize_user_facing_text(text)).strip().lower()
+    normalized = re.sub(r"^(這是|圖片是|餐點是|名稱[:：]?|這張是)\s*", "", normalized)
+    normalized = re.split(r"[\s,，。；;、/\\]", normalized)[0]
+    for alias, canonical in INGREDIENT_HINT_ALIASES.items():
+        if normalized == alias.lower():
+            return canonical
     return None
 
 

@@ -726,7 +726,9 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "AI 分析餐點" }))
 
     expect(
-      await screen.findByText("目前資訊不足，請提供更明確的餐點名稱、圖片或連結。"),
+      await screen.findByText(
+        "目前無法判斷完整餐點。若圖片是單一食材，請補充食材名稱；若是餐點，請補充餐點名稱或主要配料。",
+      ),
     ).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "加入餐點資料集" })).not.toBeInTheDocument()
   })
@@ -835,7 +837,9 @@ describe("App", () => {
 
     expect(await screen.findByText("AI 分析完成，可加入餐點資料集。")).toBeInTheDocument()
     expect(
-      screen.queryByText("目前資訊不足，請提供更明確的餐點名稱、圖片或連結。"),
+      screen.queryByText(
+        "目前無法判斷完整餐點。若圖片是單一食材，請補充食材名稱；若是餐點，請補充餐點名稱或主要配料。",
+      ),
     ).not.toBeInTheDocument()
     expect(screen.getAllByText(/包裝標示或店家資料為準/).length).toBeGreaterThan(0)
     expect(screen.getByRole("button", { name: "加入餐點資料集" })).toBeInTheDocument()
@@ -1016,7 +1020,9 @@ describe("App", () => {
     expect(within(analysis).getByText("雞肉飯")).toBeInTheDocument()
     expect(screen.getAllByText(/Gemini API 目前請求過多/).length).toBeGreaterThan(0)
     expect(
-      screen.queryByText("目前資訊不足，請提供更明確的餐點名稱、圖片或連結。"),
+      screen.queryByText(
+        "目前無法判斷完整餐點。若圖片是單一食材，請補充食材名稱；若是餐點，請補充餐點名稱或主要配料。",
+      ),
     ).not.toBeInTheDocument()
   })
 
@@ -1065,6 +1071,91 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "AI 分析餐點" }))
 
     expect(await screen.findByLabelText("AI 分析結果")).toBeInTheDocument()
+  })
+
+  test("shows the selected filename and renders a pork ingredient analysis", async () => {
+    const user = userEvent.setup()
+    const onlineApi = mockOnlineApi()
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/api/analyze/image")) {
+        return jsonResponse({
+          id: "ingredient-pork-slices",
+          mealName: "豬肉片",
+          mealType: "食材 / 肉類",
+          estimatedCalories: 250,
+          estimatedProtein: 20,
+          tags: ["食材", "肉類", "豬肉", "高蛋白"],
+          mainIngredients: ["豬肉"],
+          allergens: [],
+          recommendationReason: "此結果較接近單一食材分析，可作為後續餐點搭配與推薦參考。",
+          confidence: 0.65,
+          sourceType: "image",
+          createdAt: "2026-06-22T00:00:00+00:00",
+          isAiGenerated: true,
+        })
+      }
+      return onlineApi(input, init)
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    render(<App />)
+    const file = new File(["pork-image"], "豬肉片.webp", { type: "image/webp" })
+
+    await user.type(screen.getByLabelText("文字描述"), "豬肉片")
+    await user.upload(screen.getByLabelText("圖片上傳"), file)
+    expect(screen.getByText("豬肉片.webp")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "AI 分析餐點" }))
+
+    const analysis = await screen.findByLabelText("AI 分析結果")
+    expect(within(analysis).getByText("豬肉片")).toBeInTheDocument()
+    expect(
+      within(analysis).getByText("此結果為食材分析，營養數值僅供後續搭配餐點時參考。"),
+    ).toBeInTheDocument()
+    const imageCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).endsWith("/api/analyze/image"),
+    )
+    const body = imageCall?.[1]?.body as FormData
+    expect(body.get("file")).toBe(file)
+    expect(body.get("text")).toBe("豬肉片")
+  })
+
+  test("rejects an unsupported image format before calling the API", async () => {
+    const user = userEvent.setup({ applyAccept: false })
+    const fetchMock = vi.fn(mockOnlineApi())
+    vi.stubGlobal("fetch", fetchMock)
+    render(<App />)
+
+    await user.upload(
+      screen.getByLabelText("圖片上傳"),
+      new File(["gif"], "meal.gif", { type: "image/gif" }),
+    )
+
+    expect(screen.getByText("不支援此圖片格式，請使用 JPG、PNG 或 WebP。")).toBeInTheDocument()
+    expect(screen.getByText("尚未選擇餐點照片")).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(
+        ([input, init]) => String(input).endsWith("/api/analyze/image") && init?.method === "POST",
+      ),
+    ).toBe(false)
+  })
+
+  test("rejects an oversized image before calling the API", async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(mockOnlineApi())
+    vi.stubGlobal("fetch", fetchMock)
+    render(<App />)
+
+    await user.upload(
+      screen.getByLabelText("圖片上傳"),
+      new File([new Uint8Array(8 * 1024 * 1024 + 1)], "large.jpg", { type: "image/jpeg" }),
+    )
+
+    expect(screen.getByText("圖片檔案過大，請壓縮後再上傳。")).toBeInTheDocument()
+    expect(screen.getByText("尚未選擇餐點照片")).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(
+        ([input, init]) => String(input).endsWith("/api/analyze/image") && init?.method === "POST",
+      ),
+    ).toBe(false)
   })
 
   test("sends text description as image analysis hint when text and image are provided", async () => {

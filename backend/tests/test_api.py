@@ -854,6 +854,39 @@ def test_analyze_image_with_watermelon_hint_uses_watermelon(monkeypatch):
     assert payload["mainIngredients"] == ["\u897f\u74dc"]
 
 
+def test_analyze_image_with_pork_slices_hint_returns_single_ingredient(monkeypatch):
+    monkeypatch.setenv("AI_PROVIDER", "mock")
+    monkeypatch.setenv("AI_FALLBACK_ENABLED", "true")
+
+    response = client.post(
+        "/api/analyze/image",
+        data={"text": "豬肉片"},
+        files={"file": ("unclear.jpg", b"fake-image", "image/jpeg")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mealName"] == "豬肉片"
+    assert payload["mealType"] == "食材 / 肉類"
+    assert "食材" in payload["tags"]
+    assert "豬肉" in payload["tags"]
+    assert "豬肉" in payload["mainIngredients"]
+    assert 0.45 <= payload["confidence"] <= 0.85
+    assert validate_analysis_result(payload) == []
+
+
+def test_analyze_image_rejects_unsupported_format(monkeypatch):
+    monkeypatch.setenv("AI_PROVIDER", "mock")
+
+    response = client.post(
+        "/api/analyze/image",
+        files={"file": ("meal.gif", b"fake-image", "image/gif")},
+    )
+
+    assert response.status_code == 415
+    assert response.json()["detail"] == "不支援此圖片格式，請使用 JPG、PNG 或 WebP。"
+
+
 def test_single_ingredient_result_passes_validation():
     result = normalize_and_enrich_result(
         {

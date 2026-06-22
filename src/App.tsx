@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import {
   addMeal,
+  ApiRequestError,
   analyzeImage,
   analyzeText,
   analyzeUrl,
@@ -47,6 +48,8 @@ const defaultGoal: HealthGoal = "均衡飲食"
 const customDietTagsKey = "smartDiet.customDietTags"
 const customAvoidIngredientsKey = "smartDiet.customAvoidIngredients"
 const localUserMealsKey = "smartDiet.localUserMeals"
+const maxImageFileSize = 8 * 1024 * 1024
+const supportedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"])
 const maxCustomItems = 20
 const categorySynonyms: Record<string, string[]> = {
   肉類: [
@@ -364,6 +367,12 @@ function isLikelyFoodDescription(text: string) {
 function analysisErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : ""
   const normalized = message.toLowerCase()
+  if (error instanceof ApiRequestError && error.status === 413) {
+    return "圖片檔案過大，請壓縮後再上傳。"
+  }
+  if (error instanceof ApiRequestError && error.status === 415) {
+    return "不支援此圖片格式，請使用 JPG、PNG 或 WebP。"
+  }
   if (
     normalized.includes("429") ||
     normalized.includes("too many") ||
@@ -375,7 +384,13 @@ function analysisErrorMessage(error: unknown) {
     return "AI 服務目前請求過多，已改用保守規則分析，或請稍後再試。"
   }
   if (message.includes("無法判斷") || message.includes("資訊不足") || message.includes("更明確")) {
-    return "目前資訊不足，請提供更明確的餐點名稱、圖片或連結。"
+    return "目前無法判斷完整餐點。若圖片是單一食材，請補充食材名稱；若是餐點，請補充餐點名稱或主要配料。"
+  }
+  if (error instanceof ApiRequestError && [400, 422].includes(error.status)) {
+    return "圖片資料無法處理，請確認圖片格式與內容後再試。"
+  }
+  if (error instanceof ApiRequestError && error.status >= 500) {
+    return "AI 圖片分析服務暫時發生錯誤，請稍後再試。"
   }
   return "AI 分析暫時失敗，請稍後再試或補充餐點名稱。"
 }
@@ -1236,6 +1251,25 @@ export function App() {
     setAvoidMessage("自訂禁忌食材已刪除。")
   }
 
+  const handleImageChange = (file: File | null) => {
+    setAnalysisError("")
+    if (!file) {
+      setImageFile(null)
+      return
+    }
+    if (!supportedImageTypes.has(file.type)) {
+      setImageFile(null)
+      setAnalysisError("不支援此圖片格式，請使用 JPG、PNG 或 WebP。")
+      return
+    }
+    if (file.size > maxImageFileSize) {
+      setImageFile(null)
+      setAnalysisError("圖片檔案過大，請壓縮後再上傳。")
+      return
+    }
+    setImageFile(file)
+  }
+
   const handleAnalyzeMeal = async () => {
     const trimmedDescription = description.trim()
     const trimmedLink = mealLink.trim()
@@ -1285,7 +1319,9 @@ export function App() {
   const handleAddAnalysis = async () => {
     if (!analysisResult) return
     if (!isJoinableMeal(analysisResult)) {
-      setAnalysisError("目前資訊不足，請提供更明確的餐點名稱、圖片或連結。")
+      setAnalysisError(
+        "目前無法判斷完整餐點。若圖片是單一食材，請補充食材名稱；若是餐點，請補充餐點名稱或主要配料。",
+      )
       return
     }
 
@@ -1539,8 +1575,8 @@ export function App() {
                 <input
                   id="meal-image"
                   type="file"
-                  accept="image/*"
-                  onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
+                  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                  onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)}
                 />
                 <span className="helper-text">{imageFile?.name || "尚未選擇餐點照片"}</span>
               </div>
@@ -1576,11 +1612,18 @@ export function App() {
             {analysisError ? <p className="error-message">{analysisError}</p> : null}
 
             {analysisResult && shouldShowAnalysisError(analysisResult) ? (
-              <p className="error-message">目前資訊不足，請提供更明確的餐點名稱、圖片或連結。</p>
+              <p className="error-message">
+                目前無法判斷完整餐點。若圖片是單一食材，請補充食材名稱；若是餐點，請補充餐點名稱或主要配料。
+              </p>
             ) : null}
 
             {analysisResult && isJoinableMeal(analysisResult) ? (
               <div className="analysis-result" aria-label="AI 分析結果">
+                {analysisResult.type.includes("食材") || analysisResult.tags.includes("食材") ? (
+                  <p className="status-message">
+                    此結果為食材分析，營養數值僅供後續搭配餐點時參考。
+                  </p>
+                ) : null}
                 {shouldShowAnalysisWarning(analysisResult) ? (
                   <p className="status-message">{analysisWarningMessage(analysisResult)}</p>
                 ) : null}

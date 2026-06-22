@@ -78,11 +78,24 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
-    const message = payload?.detail ?? "AI 後端尚未啟動，請先啟動 FastAPI server。"
-    throw new Error(message)
+    const message =
+      typeof payload?.detail === "string"
+        ? payload.detail
+        : "AI 後端尚未啟動，請先啟動 FastAPI server。"
+    throw new ApiRequestError(response.status, message)
   }
 
   return response.json() as Promise<T>
+}
+
+export class ApiRequestError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message)
+    this.name = "ApiRequestError"
+  }
 }
 
 export function backendMealToMeal(meal: FlexibleBackendMeal): Meal {

@@ -73,6 +73,8 @@ PEANUT_REASON = (
     "\u8207\u8102\u80aa\uff0c\u71b1\u91cf\u8f03\u9ad8\uff0c\u9069\u5408\u4f5c\u70ba\u5c11\u91cf\u9ede\u5fc3"
     "\u6216\u71df\u990a\u88dc\u5145\uff0c\u4f46\u5c0d\u82b1\u751f\u904e\u654f\u8005\u61c9\u907f\u514d\u98df\u7528\u3002"
 )
+INGREDIENT_ANALYSIS_REASON = "此結果較接近單一食材分析，可作為後續餐點搭配與推薦參考。"
+INGREDIENT_ANALYSIS_NOTE = "此結果為食材分析，營養數值僅供後續搭配餐點時參考。"
 URL_CONSERVATIVE_REASON = (
     "\u7cfb\u7d71\u5df2\u63a5\u6536\u9910\u9ede\u9023\u7d50\uff0c"
     "\u4f46\u7121\u6cd5\u5b8c\u6574\u89e3\u6790\u8a72\u9801\u9762\u7684\u83dc\u55ae\u5167\u5bb9\uff0c"
@@ -93,6 +95,66 @@ DULOA_ICE_CREAM_REASON = (
 RECOMMENDATION_CATEGORIES_PATH = Path(__file__).resolve().parents[2] / "data" / "recommendation_categories.json"
 
 KNOWN_MEALS: dict[str, dict[str, Any]] = {
+    "豬肉片": {
+        "estimatedCalories": 250,
+        "estimatedProtein": 20,
+        "mealType": "食材 / 肉類",
+        "tags": ["食材", "肉類", "豬肉", "高蛋白"],
+        "mainIngredients": ["豬肉"],
+        "allergens": [],
+        "recommendationReason": INGREDIENT_ANALYSIS_REASON,
+        "nutritionNote": INGREDIENT_ANALYSIS_NOTE,
+    },
+    "雞胸肉": {
+        "estimatedCalories": 165,
+        "estimatedProtein": 31,
+        "mealType": "食材 / 肉類",
+        "tags": ["食材", "肉類", "雞肉", "高蛋白", "低脂"],
+        "mainIngredients": ["雞胸肉"],
+        "allergens": [],
+        "recommendationReason": INGREDIENT_ANALYSIS_REASON,
+        "nutritionNote": INGREDIENT_ANALYSIS_NOTE,
+    },
+    "牛肉片": {
+        "estimatedCalories": 250,
+        "estimatedProtein": 26,
+        "mealType": "食材 / 肉類",
+        "tags": ["食材", "肉類", "牛肉", "高蛋白"],
+        "mainIngredients": ["牛肉"],
+        "allergens": [],
+        "recommendationReason": INGREDIENT_ANALYSIS_REASON,
+        "nutritionNote": INGREDIENT_ANALYSIS_NOTE,
+    },
+    "豆腐": {
+        "estimatedCalories": 80,
+        "estimatedProtein": 8,
+        "mealType": "食材 / 豆類",
+        "tags": ["食材", "豆類", "植物性蛋白"],
+        "mainIngredients": ["豆腐"],
+        "allergens": ["大豆"],
+        "recommendationReason": INGREDIENT_ANALYSIS_REASON,
+        "nutritionNote": INGREDIENT_ANALYSIS_NOTE,
+    },
+    "青菜": {
+        "estimatedCalories": 30,
+        "estimatedProtein": 2,
+        "mealType": "食材 / 蔬菜",
+        "tags": ["食材", "蔬菜", "低熱量"],
+        "mainIngredients": ["青菜"],
+        "allergens": [],
+        "recommendationReason": INGREDIENT_ANALYSIS_REASON,
+        "nutritionNote": INGREDIENT_ANALYSIS_NOTE,
+    },
+    "鮭魚": {
+        "estimatedCalories": 208,
+        "estimatedProtein": 20,
+        "mealType": "食材 / 魚類",
+        "tags": ["食材", "魚類", "高蛋白"],
+        "mainIngredients": ["鮭魚"],
+        "allergens": ["魚"],
+        "recommendationReason": INGREDIENT_ANALYSIS_REASON,
+        "nutritionNote": INGREDIENT_ANALYSIS_NOTE,
+    },
     "杜老爺": {
         "estimatedCalories": 260,
         "estimatedProtein": 4,
@@ -127,20 +189,22 @@ KNOWN_MEALS: dict[str, dict[str, Any]] = {
     "\u897f\u74dc": {
         "estimatedCalories": 30,
         "estimatedProtein": 1,
-        "mealType": "\u6c34\u679c",
-        "tags": ["\u6c34\u679c", "\u4f4e\u71b1\u91cf", "\u6c34\u5206\u9ad8"],
+        "mealType": "食材 / 水果",
+        "tags": ["食材", "\u6c34\u679c", "\u4f4e\u71b1\u91cf", "\u6c34\u5206\u9ad8"],
         "mainIngredients": ["\u897f\u74dc"],
         "allergens": [],
         "recommendationReason": WATERMELON_REASON,
+        "nutritionNote": INGREDIENT_ANALYSIS_NOTE,
     },
     "\u82b1\u751f": {
         "estimatedCalories": 567,
         "estimatedProtein": 26,
         "mealType": "\u5805\u679c / \u8c46\u985e\u98df\u6750",
-        "tags": ["\u5805\u679c", "\u9ad8\u86cb\u767d", "\u9ad8\u8102\u80aa"],
+        "tags": ["食材", "\u5805\u679c", "\u9ad8\u86cb\u767d", "\u9ad8\u8102\u80aa"],
         "mainIngredients": ["\u82b1\u751f"],
         "allergens": ["\u82b1\u751f"],
         "recommendationReason": PEANUT_REASON,
+        "nutritionNote": INGREDIENT_ANALYSIS_NOTE,
     },
     "\u8089\u6842\u6372": {
         "estimatedCalories": 320,
@@ -196,10 +260,12 @@ KNOWN_MEALS: dict[str, dict[str, Any]] = {
     "\u96de\u86cb": {
         "estimatedCalories": 80,
         "estimatedProtein": 7,
-        "mealType": "\u86cb\u767d\u9ede\u5fc3",
-        "tags": ["\u4f4e\u5361", "\u9ad8\u86cb\u767d"],
+        "mealType": "食材 / 蛋類",
+        "tags": ["食材", "蛋類", "\u9ad8\u86cb\u767d"],
         "mainIngredients": ["\u96de\u86cb"],
         "allergens": ["\u86cb"],
+        "recommendationReason": INGREDIENT_ANALYSIS_REASON,
+        "nutritionNote": INGREDIENT_ANALYSIS_NOTE,
     },
     "\u96de\u6392\u9eb5": {
         "estimatedCalories": 850,
@@ -538,6 +604,7 @@ def calibrate_confidence(
     validation_errors = validation_errors or []
     evidence = str(parsed_evidence or "")
     has_limited_info_warning = bool(payload.get("warningMessage") or payload.get("nutritionNote"))
+    is_ingredient_result = _is_ingredient_result(payload)
 
     if _has_incomplete_ingredients(ingredients):
         confidence = min(confidence, 0.45)
@@ -554,8 +621,10 @@ def calibrate_confidence(
             confidence = min(confidence, 0.6)
     if source == "image" and used_fallback and validation_errors:
         confidence = min(confidence, 0.4)
-    if not _is_complete_result(meal_name, calories, protein, ingredients, reason, source):
+    if not _is_complete_result(meal_name, calories, protein, ingredients, reason, source, is_ingredient_result):
         confidence = min(confidence, 0.4 if source in {"image", "url"} else 0.75)
+    if is_ingredient_result:
+        confidence = min(confidence, 0.85)
     if meal_name == "\u70b8\u96de\u6392":
         confidence = min(confidence, 0.85)
     return confidence
@@ -881,19 +950,26 @@ def _is_complete_result(
     ingredients: list[str],
     reason: str,
     source_type: str,
+    is_ingredient_result: bool = False,
 ) -> bool:
     return (
         bool(meal_name)
         and not _is_overly_generic_name(meal_name)
         and calories is not None
         and protein is not None
-        and len(ingredients) >= 2
+        and len(ingredients) >= (1 if is_ingredient_result else 2)
         and not _has_incomplete_ingredients(ingredients)
         and bool(reason)
         and not _is_generic_reason(reason)
         and not _is_forbidden_reason(reason)
         and source_type in {"text", "image", "url"}
     )
+
+
+def _is_ingredient_result(payload: dict[str, Any]) -> bool:
+    meal_type = str(payload.get("mealType") or "")
+    tags = _string_list(payload.get("tags"))
+    return "食材" in meal_type or "食材" in tags or meal_type in {"水果", "飲品"}
 
 
 def _has_any(text: str, keywords: list[str]) -> bool:
