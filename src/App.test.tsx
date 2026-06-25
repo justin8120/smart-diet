@@ -259,6 +259,57 @@ describe("App", () => {
     expect(within(mealDataset).getByText("茶葉蛋")).toBeInTheDocument()
   })
 
+  test("shows AI interpreted needs and recommendation explanation", async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.endsWith("/api/health"))
+          return jsonResponse({
+            status: "ok",
+            aiProvider: "mock",
+            aiConfigured: true,
+            model: "mock",
+            fallbackEnabled: true,
+          })
+        if (url.endsWith("/api/meals")) return jsonResponse(backendMeals)
+        if (url.endsWith("/api/recommend")) {
+          return jsonResponse({
+            interpretedNeeds: {
+              healthGoal: "減脂",
+              preferredTags: ["高蛋白", "低油"],
+              excludedIngredients: ["海鮮"],
+              notes: "晚餐運動後補充蛋白質",
+            },
+            rankedMeals: [
+              {
+                mealId: leanChickenMeal.id,
+                mealName: leanChickenMeal.mealName,
+                aiScore: 92,
+                matchedNeeds: ["高蛋白", "低油", "減脂"],
+                riskNotes: [],
+                explanation: "蛋白質高且熱量適中。",
+              },
+            ],
+            meals: [leanChickenMeal],
+            usedAiRanking: true,
+            fallbackMessage: null,
+          })
+        }
+        return jsonResponse({ detail: "Not found" }, { status: 404 })
+      }),
+    )
+    render(<App />)
+
+    await user.type(screen.getByLabelText("請描述你的飲食需求"), "我想減脂，不要海鮮，高蛋白")
+    await user.click(screen.getByRole("button", { name: "搜尋 / 推薦" }))
+
+    expect(await screen.findByRole("heading", { name: "AI 理解到的需求" })).toBeInTheDocument()
+    expect(screen.getByText(/AI 推薦分數 92/)).toBeInTheDocument()
+    expect(screen.getByText("蛋白質高且熱量適中。")).toBeInTheDocument()
+  })
+
   test("syncs one local meal into 121 backend meals and refreshes the counts", async () => {
     const user = userEvent.setup()
     let serverMeals = Array.from({ length: 121 }, (_, index) => ({

@@ -21,6 +21,7 @@ import {
   recommendMeals,
   repairLocalMealDraft,
   syncMealsToBackend,
+  type AiRecommendation,
   type BackendHealth,
   type NearbyPlace,
 } from "./api"
@@ -41,6 +42,18 @@ type QueryRecord = {
   excludedAllergens: Allergen[]
   keyword: string
   resultCount: number
+}
+
+type AiRecommendationSummary = {
+  interpretedNeeds: {
+    healthGoal: string
+    preferredTags: string[]
+    excludedIngredients: string[]
+    notes: string
+  }
+  rankedMeals: AiRecommendation[]
+  usedAiRanking: boolean
+  fallbackMessage?: string | null
 }
 
 type CustomListKind = "tag" | "avoid"
@@ -1105,6 +1118,8 @@ export function App() {
   const [tagMessage, setTagMessage] = useState("")
   const [avoidMessage, setAvoidMessage] = useState("")
   const [keyword, setKeyword] = useState("")
+  const [userTextPreference, setUserTextPreference] = useState("")
+  const [aiRecommendation, setAiRecommendation] = useState<AiRecommendationSummary | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
   const [recommendedMeals, setRecommendedMeals] = useState<Meal[]>(() =>
     mergeMealCollections(meals, loadStoredMeals()),
@@ -1497,18 +1512,50 @@ export function App() {
 
     try {
       if (!isOfflineMode) {
-        results = await recommendMeals({
+        const response = await recommendMeals({
           healthGoal: goal,
           tags: selectedTags,
           excludedIngredients: effectiveExcludedAllergens,
           keyword: keyword.trim() || null,
+          userTextPreference: userTextPreference.trim(),
+          queryHistory: history.map((record) => ({
+            healthGoal: record.goal,
+            tags: record.tags,
+            excludedIngredients: record.excludedAllergens,
+            keyword: record.keyword,
+          })),
         })
+        results = response.meals
+        setAiRecommendation(response.ai ?? null)
         setBackendError("")
+      } else {
+        setAiRecommendation({
+          interpretedNeeds: {
+            healthGoal: goal,
+            preferredTags: selectedTags,
+            excludedIngredients: effectiveExcludedAllergens,
+            notes: userTextPreference.trim() || "離線模式未使用 AI 解析。",
+          },
+          rankedMeals: [],
+          usedAiRanking: false,
+          fallbackMessage: "AI 推薦排序暫時不可用，已改用基本條件推薦。",
+        })
       }
     } catch {
       setBackendError("AI 後端尚未啟動，請先啟動 FastAPI server。")
       setIsOfflineMode(true)
       results = localRecommendation
+      setAiRecommendation({
+        interpretedNeeds: {
+          healthGoal: goal,
+          preferredTags: selectedTags,
+          excludedIngredients: effectiveExcludedAllergens,
+          notes: userTextPreference.trim() || "後端暫時無法使用。",
+        },
+        rankedMeals: [],
+        usedAiRanking: false,
+        fallbackMessage: "AI 推薦排序暫時不可用，已改用基本條件推薦。",
+      })
     } finally {
       setIsRecommending(false)
     }
@@ -1756,6 +1803,16 @@ export function App() {
               </label>
             </div>
 
+            <label className="control-group">
+              請描述你的飲食需求
+              <textarea
+                value={userTextPreference}
+                onChange={(event) => setUserTextPreference(event.target.value)}
+                placeholder="例如：我想減脂、不要海鮮、晚餐想吃高蛋白但不要太油。"
+                rows={3}
+              />
+            </label>
+
             <CustomChoiceGroup
               legend="飲食標籤"
               defaultItems={dietTags}
@@ -1829,6 +1886,40 @@ export function App() {
             <p className="empty-state">
               目前沒有符合條件的完整餐點資料，請調整條件或補充餐點資訊。
             </p>
+          ) : null}
+
+          {aiRecommendation ? (
+            <div className="analysis-result" aria-label="AI 個人化推薦說明">
+              {aiRecommendation.fallbackMessage ? (
+                <p className="status-message">{aiRecommendation.fallbackMessage}</p>
+              ) : null}
+              <h3>AI 理解到的需求</h3>
+              <p>
+                目標：{aiRecommendation.interpretedNeeds.healthGoal || "未指定"}；偏好：
+                {formatList(aiRecommendation.interpretedNeeds.preferredTags)}；排除：
+                {formatList(aiRecommendation.interpretedNeeds.excludedIngredients)}
+              </p>
+              <p>{aiRecommendation.interpretedNeeds.notes}</p>
+              {aiRecommendation.rankedMeals.map((item) => (
+                <article className="meal-card" key={item.mealId}>
+                  <h3>
+                    {item.mealName} · AI 推薦分數 {item.aiScore}
+                  </h3>
+                  <p>
+                    <strong>推薦原因：</strong>
+                    {item.explanation}
+                  </p>
+                  <p>
+                    <strong>符合條件：</strong>
+                    {formatList(item.matchedNeeds)}
+                  </p>
+                  <p>
+                    <strong>風險提醒：</strong>
+                    {formatList(item.riskNotes)}
+                  </p>
+                </article>
+              ))}
+            </div>
           ) : null}
 
           <div className="meal-grid" aria-label="推薦清單">

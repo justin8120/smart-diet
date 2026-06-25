@@ -1983,6 +1983,68 @@ def test_recommend_filters_incomplete_meals(monkeypatch):
     assert "\u852c\u98df\u4fbf\u7576" in names
 
 
+def test_ai_recommendation_interprets_natural_language_and_returns_explanations(monkeypatch):
+    monkeypatch.setattr(
+        meals_store,
+        "load_meals",
+        lambda: [
+            meal_fixture("雞胸肉健康餐", tags=["高蛋白", "低油"], ingredients=["雞胸肉", "蔬菜"]),
+        ],
+    )
+    response = client.post(
+        "/api/recommend",
+        json={
+            "healthGoal": "減脂", "tags": [], "excludedIngredients": [], "keyword": None,
+            "userTextPreference": "我想減脂，不要海鮮，高蛋白",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["interpretedNeeds"]["healthGoal"] == "減脂"
+    assert "高蛋白" in payload["interpretedNeeds"]["preferredTags"]
+    assert "海鮮" in payload["interpretedNeeds"]["excludedIngredients"]
+    assert payload["rankedMeals"][0]["aiScore"] >= 0
+    assert payload["rankedMeals"][0]["explanation"]
+
+
+def test_ai_recommendation_never_reintroduces_hard_exclusions(monkeypatch):
+    monkeypatch.setattr(
+        meals_store,
+        "load_meals",
+        lambda: [
+            meal_fixture("鮮蝦健康餐", tags=["高蛋白"], ingredients=["蝦仁", "蔬菜"]),
+            meal_fixture("雞胸肉健康餐", tags=["高蛋白"], ingredients=["雞胸肉", "蔬菜"]),
+        ],
+    )
+    response = client.post(
+        "/api/recommend",
+        json={
+            "healthGoal": "", "tags": [], "excludedIngredients": ["海鮮"], "keyword": None,
+            "userTextPreference": "高蛋白晚餐",
+        },
+    )
+
+    payload = response.json()
+    assert [meal["mealName"] for meal in payload["meals"]] == ["雞胸肉健康餐"]
+    assert [meal["mealName"] for meal in payload["rankedMeals"]] == ["雞胸肉健康餐"]
+
+
+def test_ai_recommendation_falls_back_when_ranker_fails(monkeypatch):
+    from app.services import ai_recommender
+
+    monkeypatch.setattr(ai_recommender, "rank_meals", lambda **_: (_ for _ in ()).throw(RuntimeError("upstream")))
+    monkeypatch.setattr(meals_store, "load_meals", lambda: [meal_fixture("雞胸肉健康餐", ingredients=["雞胸肉", "蔬菜"])])
+    response = client.post(
+        "/api/recommend",
+        json={"healthGoal": "", "tags": [], "excludedIngredients": [], "keyword": None, "userTextPreference": "高蛋白"},
+    )
+
+    payload = response.json()
+    assert payload["usedAiRanking"] is False
+    assert payload["fallbackMessage"] == "AI 推薦排序暫時不可用，已改用基本條件推薦。"
+
+
 def test_dataset_recommendation_exclusions_and_keyword_search():
     pork_response = client.post(
         "/api/recommend",

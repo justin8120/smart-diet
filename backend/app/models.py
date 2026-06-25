@@ -50,6 +50,32 @@ class RecommendRequest(BaseModel):
     tags: list[str]
     excludedIngredients: list[str]
     keyword: str | None = None
+    userTextPreference: str | None = None
+    queryHistory: list[dict[str, object]] = Field(default_factory=list)
+
+
+class InterpretedNeeds(BaseModel):
+    healthGoal: str
+    preferredTags: list[str]
+    excludedIngredients: list[str]
+    notes: str
+
+
+class RankedMeal(BaseModel):
+    mealId: str
+    mealName: str
+    aiScore: int = Field(ge=0, le=100)
+    matchedNeeds: list[str] = Field(default_factory=list)
+    riskNotes: list[str] = Field(default_factory=list)
+    explanation: str
+
+
+class RecommendResponse(BaseModel):
+    interpretedNeeds: InterpretedNeeds
+    rankedMeals: list[RankedMeal]
+    meals: list[MealAnalysisResult]
+    usedAiRanking: bool
+    fallbackMessage: str | None = None
 
 
 class NearbyPlacesRequest(BaseModel):

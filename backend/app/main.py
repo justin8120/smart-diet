@@ -14,11 +14,13 @@ from app.models import (
     MealUpsertResponse,
     NearbyPlacesRequest,
     NearbyPlacesResponse,
+    RecommendResponse,
     RecommendRequest,
     TextAnalyzeRequest,
     UrlAnalyzeRequest,
 )
 from app.services import openai_meal_analyzer
+from app.services import ai_recommender
 from app.services.nearby_places import search_nearby_places
 from app.services.nutrition_enricher import normalize_and_enrich_result
 from app.storage.meals_store import add_meal, load_meals, recommend_meals
@@ -157,14 +159,45 @@ def _meal_request_validation_detail(errors: list[dict[str, object]]) -> str:
     return "餐點資料格式不合法"
 
 
-@app.post("/api/recommend", response_model=list[MealAnalysisResult])
-def recommend(request: RecommendRequest) -> list[MealAnalysisResult]:
-    return recommend_meals(
+@app.post("/api/recommend", response_model=list[MealAnalysisResult] | RecommendResponse)
+def recommend(request: RecommendRequest) -> list[MealAnalysisResult] | RecommendResponse:
+    # The storage layer is the safety gate: it filters incomplete meals and all
+    # allergies/avoidances before an AI model ever sees a candidate.
+    candidates = recommend_meals(
         health_goal=request.healthGoal,
         tags=request.tags,
         excluded_ingredients=request.excludedIngredients,
         keyword=request.keyword,
     )
+    # Keep the original response for older clients that have not opted into the
+    # natural-language recommendation flow yet.
+    if request.userTextPreference is None:
+        return candidates
+    try:
+        ranked = ai_recommender.rank_meals(
+            user_text_preference=request.userTextPreference,
+            health_goal=request.healthGoal,
+            selected_tags=request.tags,
+            excluded_ingredients=request.excludedIngredients,
+            candidate_meals=candidates,
+            query_history=request.queryHistory,
+        )
+        order = {item["mealId"]: index for index, item in enumerate(ranked["rankedMeals"])}
+        meals = sorted(candidates, key=lambda meal: order.get(meal.id, len(order)))
+        return RecommendResponse(**ranked, meals=meals, usedAiRanking=True)
+    except Exception:
+        # Do not leak provider or upstream API errors to the client.
+        fallback_needs = ai_recommender.interpret_needs(
+            request.userTextPreference, request.healthGoal, request.tags, request.excludedIngredients,
+        )
+        fallback_ranked = ai_recommender._rule_rank(candidates, fallback_needs)
+        return RecommendResponse(
+            interpretedNeeds=fallback_needs,
+            rankedMeals=fallback_ranked,
+            meals=candidates,
+            usedAiRanking=False,
+            fallbackMessage="AI 推薦排序暫時不可用，已改用基本條件推薦。",
+        )
 
 
 @app.post("/api/nearby-places", response_model=NearbyPlacesResponse)

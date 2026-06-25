@@ -53,6 +53,30 @@ export type RecommendPayload = {
   tags: DietTag[]
   excludedIngredients: Allergen[]
   keyword: string | null
+  userTextPreference?: string
+  queryHistory?: Array<Record<string, unknown>>
+}
+
+export type AiRecommendation = {
+  mealId: string
+  mealName: string
+  aiScore: number
+  matchedNeeds: string[]
+  riskNotes: string[]
+  explanation: string
+}
+
+export type RecommendResponse = {
+  interpretedNeeds: {
+    healthGoal: string
+    preferredTags: string[]
+    excludedIngredients: string[]
+    notes: string
+  }
+  rankedMeals: AiRecommendation[]
+  meals: BackendMeal[]
+  usedAiRanking: boolean
+  fallbackMessage?: string | null
 }
 
 export type NearbyPlace = {
@@ -455,12 +479,24 @@ export async function syncMealsToBackend(meals: Meal[]): Promise<MealSyncResult>
   return { successful, failed }
 }
 
-export async function recommendMeals(payload: RecommendPayload): Promise<Meal[]> {
-  const response = await request<BackendMeal[]>("/api/recommend", {
+export async function recommendMeals(payload: RecommendPayload): Promise<{
+  meals: Meal[]
+  ai?: Omit<RecommendResponse, "meals">
+}> {
+  const response = await request<BackendMeal[] | RecommendResponse>("/api/recommend", {
     method: "POST",
     body: JSON.stringify(payload),
   })
-  return response.map(backendMealToMeal)
+  if (Array.isArray(response)) return { meals: response.map(backendMealToMeal) }
+  return {
+    meals: response.meals.map(backendMealToMeal),
+    ai: {
+      interpretedNeeds: response.interpretedNeeds,
+      rankedMeals: response.rankedMeals,
+      usedAiRanking: response.usedAiRanking,
+      fallbackMessage: response.fallbackMessage,
+    },
+  }
 }
 
 export async function fetchNearbyPlaces(payload: {
