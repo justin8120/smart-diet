@@ -15,6 +15,7 @@ from app.services.nutrition_enricher import (
     validate_analysis_result,
 )
 from app.services.openai_meal_analyzer import classify_text_hint
+from app.services.map_recommender import build_place_query, rank_map_places
 from app.services.nearby_places import _rank_relevant_places, build_nearby_query
 from app.services.web_food_verifier import rerank_food_candidates
 from app.services import web_food_verifier
@@ -127,7 +128,7 @@ def test_nearby_places_relevance_filters_noodle_results_for_soup_dumplings():
     assert [place.name for place in ranked_places] == ["阿明湯包小籠包"]
 
 
-def test_nearby_places_requires_google_api_key(monkeypatch):
+def test_nearby_places_uses_mock_fallback_without_google_api_key(monkeypatch):
     monkeypatch.setenv("NEARBY_PROVIDER", "google")
     monkeypatch.delenv("GOOGLE_MAPS_API_KEY", raising=False)
 
@@ -142,8 +143,105 @@ def test_nearby_places_requires_google_api_key(monkeypatch):
         },
     )
 
-    assert response.status_code == 503
-    assert "GOOGLE_MAPS_API_KEY" in response.json()["detail"]
+    payload = response.json()
+    assert response.status_code == 200
+    assert payload["fallbackUsed"] is True
+    assert "\u793a\u7bc4\u5e97\u5bb6\u8cc7\u6599" in payload["message"]
+    assert payload["places"]
+    assert payload["places"][0]["aiMapScore"] is not None
+    assert payload["places"][0]["explanation"]
+    assert payload["places"][0]["riskNotes"]
+
+
+def test_build_place_query_uses_ai_map_context():
+    assert build_place_query("雞胸肉健康餐", "健康餐", ["高蛋白", "減脂"], "晚餐不要太油") == "雞胸肉 健康餐 餐盒 高蛋白"
+    assert build_place_query("炸雞排", "小吃", []) == "雞排 鹽酥雞 小吃"
+    assert build_place_query("牛肉麵", "麵食", []) == "牛肉麵"
+    assert build_place_query("鮮蝦蔬菜碗", "健康餐", ["高蛋白"]) == "健康餐 蔬菜碗 蝦仁 餐盒 高蛋白"
+    assert build_place_query("肉桂捲", "甜點", []) == "肉桂捲 甜點 咖啡廳"
+
+
+def test_build_place_query_does_not_include_excluded_ingredients():
+    query = build_place_query("雞胸肉健康餐", "健康餐", ["高蛋白"], "我想減脂，不要海鮮")
+
+    assert "海鮮" not in query
+    assert build_nearby_query("雞胸肉健康餐", "健康餐", ["高蛋白"]) == "健康餐 雞胸肉餐盒"
+
+
+def test_nearby_places_google_failure_does_not_500(monkeypatch):
+    monkeypatch.setenv("NEARBY_PROVIDER", "google")
+    monkeypatch.setenv("GOOGLE_MAPS_API_KEY", "test-key")
+
+    class BrokenClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            raise RuntimeError("network down")
+
+        async def __aexit__(self, *args):
+            return False
+
+    import app.services.nearby_places as nearby_places
+
+    monkeypatch.setattr(nearby_places.httpx, "AsyncClient", BrokenClient)
+    response = client.post(
+        "/api/nearby-places",
+        json={
+            "lat": 25.033,
+            "lng": 121.5654,
+            "mealName": "雞胸肉健康餐",
+            "mealType": "健康餐",
+            "tags": ["高蛋白"],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["fallbackUsed"] is True
+
+
+def test_ai_map_ranking_failure_falls_back_to_rule_based(monkeypatch):
+    from app.services import map_recommender
+
+    places = [
+        NearbyPlace(
+            name="健康餐盒店",
+            address="台北市測試路 1 號",
+            rating=4.5,
+            distanceMeters=350,
+            openNow=True,
+            types=["restaurant", "meal_takeaway"],
+            mapUrl="https://maps.example/healthy",
+        )
+    ]
+
+    class FakeProvider:
+        name = "openai"
+        configured = True
+        model = "fake"
+        api_key = "fake"
+        base_url = None
+
+    monkeypatch.setattr(map_recommender, "get_ai_provider", lambda: FakeProvider())
+    monkeypatch.setattr(
+        map_recommender,
+        "_provider_rank_places",
+        lambda **kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+    ranked, used_ai, message = rank_map_places(
+        places=places,
+        meal_name="雞胸肉健康餐",
+        meal_type="健康餐",
+        tags=["高蛋白"],
+        user_text_preference="我想減脂，不要海鮮",
+        health_goal="減脂",
+        excluded_ingredients=["海鮮"],
+    )
+
+    assert used_ai is False
+    assert "AI 店家排序暫時不可用" in str(message)
+    assert ranked[0].aiMapScore is not None
+    assert ranked[0].explanation
 
 
 def test_classify_text_hint_treats_single_peanut_as_weak_hint():

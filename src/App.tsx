@@ -674,6 +674,7 @@ type NearbyPanelState = {
   places: NearbyPlace[]
   message: string
   query: string
+  fallbackUsed?: boolean
 }
 
 let runtimeEnvOverride: Record<string, string | undefined> | null = null
@@ -773,6 +774,7 @@ function MockNearbyPanel({ meal }: { meal: Meal }) {
   )
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function GoogleNearbyPanel({ state }: { state: NearbyPanelState }) {
   if (state.status === "loading") {
     return (
@@ -825,7 +827,80 @@ function getCurrentPosition(): Promise<GeolocationPosition> {
   })
 }
 
-function MealCard({ meal }: { meal: Meal }) {
+function AiMapNearbyPanel({ state }: { state: NearbyPanelState }) {
+  if (state.status === "loading") {
+    return (
+      <div className="mock-nearby-panel" aria-live="polite">
+        <p className="nearby-message">正在取得附近店家...</p>
+      </div>
+    )
+  }
+
+  if (state.status === "error") {
+    return (
+      <div className="mock-nearby-panel" aria-live="polite">
+        <p className="nearby-message">{state.message}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mock-nearby-panel" aria-live="polite">
+      {state.query ? <p className="nearby-message">查詢關鍵字：{state.query}</p> : null}
+      {state.message ? <p className="nearby-message">{state.message}</p> : null}
+      {state.fallbackUsed && !state.message.includes("示範店家資料") ? (
+        <p className="nearby-message">目前使用示範店家資料，正式部署可接 Google Places API。</p>
+      ) : null}
+      {state.places.length > 0 ? (
+        <div>
+          <h4>AI 地圖店家推薦</h4>
+          <ol className="mock-place-list">
+            {state.places.map((place) => (
+              <li key={`${place.name}-${place.mapUrl}`}>
+                <strong>{place.name}</strong>
+                <span>距離：{place.distanceMeters ?? "未知"} 公尺</span>
+                <span>評分：{place.rating ?? "尚無評分"}</span>
+                <span>
+                  營業狀態：
+                  {place.openNow === true ? "營業中" : place.openNow === false ? "未營業" : "未知"}
+                </span>
+                <span>AI 地圖推薦分數：{place.aiMapScore ?? "尚未評分"}</span>
+                <span>推薦理由：{place.explanation ?? "此店家與餐點需求相關。"}</span>
+                <span>風險提醒：{formatList(place.riskNotes ?? ["實際菜單仍需確認"])}</span>
+                <span>地址：{place.address}</span>
+                <span>類型：{place.types.join(" / ")}</span>
+                <a
+                  className="map-button"
+                  href={place.googleMapsUrl ?? place.mapUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  打開 Google Maps
+                </a>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+type MealCardProps = {
+  meal: Meal
+  userTextPreference?: string
+  healthGoal?: string
+  excludedIngredients?: string[]
+}
+
+const defaultDemoPosition = { lat: 25.033, lng: 121.5654 }
+
+function MealCard({
+  meal,
+  userTextPreference = "",
+  healthGoal = "",
+  excludedIngredients = [],
+}: MealCardProps) {
   const [showNearby, setShowNearby] = useState(false)
   const [nearbyState, setNearbyState] = useState<NearbyPanelState>({
     status: "idle",
@@ -834,6 +909,107 @@ function MealCard({ meal }: { meal: Meal }) {
     query: "",
   })
 
+  async function fetchAiMapPlaces(lat: number, lng: number, prefixMessage = "") {
+    try {
+      const sourceMeal = meal as Meal & { mealName?: string; mealType?: string }
+      const livePreference =
+        userTextPreference ||
+        (window as unknown as { __smartDietUserTextPreference?: string })
+          .__smartDietUserTextPreference ||
+        (document.querySelector('[aria-label="請描述你的飲食需求"]') as HTMLTextAreaElement | null)
+          ?.value ||
+        ""
+      const response = await fetchNearbyPlaces({
+        lat,
+        lng,
+        mealName: sourceMeal.mealName ?? meal.name,
+        mealType: sourceMeal.mealType ?? meal.type,
+        tags: meal.tags,
+        userTextPreference: livePreference,
+        healthGoal,
+        excludedIngredients,
+        radiusMeters: 1500,
+      })
+      setNearbyState({
+        status: "success",
+        places: response.places,
+        message: [prefixMessage, response.message].filter(Boolean).join(" "),
+        query: response.query,
+        fallbackUsed: response.fallbackUsed,
+      })
+    } catch {
+      setNearbyState({
+        status: "success",
+        places: [],
+        message: [prefixMessage, "目前使用示範店家資料，正式部署可接 Google Places API。"]
+          .filter(Boolean)
+          .join(" "),
+        query: "",
+        fallbackUsed: true,
+      })
+    }
+  }
+
+  async function handleAiMapNearbyClick() {
+    if (showNearby) {
+      setShowNearby(false)
+      return
+    }
+
+    setShowNearby(true)
+
+    if (nearbyMode() === "mock") return
+
+    if (!configuredApiBaseUrl()) {
+      setNearbyState({
+        status: "error",
+        places: [],
+        message: "尚未設定後端 API 位址。",
+        query: "",
+      })
+      return
+    }
+
+    setNearbyState({ status: "loading", places: [], message: "", query: "" })
+
+    if (!navigator.geolocation) {
+      await fetchAiMapPlaces(
+        defaultDemoPosition.lat,
+        defaultDemoPosition.lng,
+        "無法取得定位，暫以示範資料顯示。",
+      )
+      return
+    }
+
+    try {
+      const position = await getCurrentPosition()
+      await fetchAiMapPlaces(position.coords.latitude, position.coords.longitude)
+    } catch (error) {
+      const geolocationError = error as Partial<GeolocationPositionError>
+      const isGeolocationError =
+        geolocationError.code === 1 ||
+        geolocationError.code === 2 ||
+        geolocationError.code === 3 ||
+        (typeof GeolocationPositionError !== "undefined" &&
+          error instanceof GeolocationPositionError)
+      if (isGeolocationError && geolocationError.code === 1) {
+        setNearbyState({
+          status: "error",
+          places: [],
+          message: "需要定位權限才能查詢附近店家。",
+          query: "",
+        })
+        return
+      }
+      await fetchAiMapPlaces(
+        defaultDemoPosition.lat,
+        defaultDemoPosition.lng,
+        "無法取得定位，暫以示範資料顯示。",
+      )
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function handleNearbyClick() {
     if (showNearby) {
       setShowNearby(false)
@@ -954,12 +1130,12 @@ function MealCard({ meal }: { meal: Meal }) {
       <button
         className="utility-button nearby-toggle-button"
         type="button"
-        onClick={handleNearbyClick}
+        onClick={handleAiMapNearbyClick}
       >
         查看附近店家
       </button>
       {showNearby && nearbyMode() === "mock" ? <MockNearbyPanel meal={meal} /> : null}
-      {showNearby && nearbyMode() === "google" ? <GoogleNearbyPanel state={nearbyState} /> : null}
+      {showNearby && nearbyMode() === "google" ? <AiMapNearbyPanel state={nearbyState} /> : null}
     </article>
   )
 }
@@ -1754,7 +1930,15 @@ export function App() {
                 {shouldShowAnalysisWarning(analysisResult) ? (
                   <p className="status-message">{analysisWarningMessage(analysisResult)}</p>
                 ) : null}
-                <MealCard meal={analysisResult} />
+                <MealCard
+                  meal={analysisResult}
+                  userTextPreference={userTextPreference}
+                  healthGoal={goal}
+                  excludedIngredients={getEffectiveExcludedIngredients(
+                    selectedTags,
+                    excludedAllergens,
+                  )}
+                />
                 <button className="utility-button" onClick={handleAddAnalysis}>
                   加入餐點資料集
                 </button>
@@ -1806,8 +1990,14 @@ export function App() {
             <label className="control-group">
               請描述你的飲食需求
               <textarea
+                aria-label="請描述你的飲食需求"
                 value={userTextPreference}
-                onChange={(event) => setUserTextPreference(event.target.value)}
+                onChange={(event) => {
+                  setUserTextPreference(event.target.value)
+                  ;(
+                    window as unknown as { __smartDietUserTextPreference?: string }
+                  ).__smartDietUserTextPreference = event.target.value
+                }}
                 placeholder="例如：我想減脂、不要海鮮、晚餐想吃高蛋白但不要太油。"
                 rows={3}
               />
@@ -1924,7 +2114,16 @@ export function App() {
 
           <div className="meal-grid" aria-label="推薦清單">
             {displayedMeals.map((meal) => (
-              <MealCard meal={meal} key={meal.id} />
+              <MealCard
+                meal={meal}
+                key={meal.id}
+                userTextPreference={userTextPreference}
+                healthGoal={goal}
+                excludedIngredients={getEffectiveExcludedIngredients(
+                  selectedTags,
+                  excludedAllergens,
+                )}
+              />
             ))}
           </div>
         </section>
@@ -2007,7 +2206,18 @@ export function App() {
             {mealDatasetLoading ? (
               <p className="empty-state">餐點資料載入中...</p>
             ) : (
-              mealDataset.map((meal) => <MealCard meal={meal} key={meal.id} />)
+              mealDataset.map((meal) => (
+                <MealCard
+                  meal={meal}
+                  key={meal.id}
+                  userTextPreference={userTextPreference}
+                  healthGoal={goal}
+                  excludedIngredients={getEffectiveExcludedIngredients(
+                    selectedTags,
+                    excludedAllergens,
+                  )}
+                />
+              ))
             )}
           </div>
         </section>

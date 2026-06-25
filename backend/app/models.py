@@ -84,6 +84,9 @@ class NearbyPlacesRequest(BaseModel):
     mealName: str
     mealType: str
     tags: list[str]
+    userTextPreference: str | None = None
+    healthGoal: str | None = None
+    excludedIngredients: list[str] = Field(default_factory=list)
     radiusMeters: int | None = None
 
 
@@ -92,11 +95,20 @@ class NearbyPlace(BaseModel):
     address: str
     rating: float | None = None
     distanceMeters: float | None = None
+    openNow: bool | None = None
     types: list[str]
     mapUrl: str
+    googleMapsUrl: str | None = None
+    aiMapScore: int | None = Field(default=None, ge=0, le=100)
+    matchedReasons: list[str] = Field(default_factory=list)
+    riskNotes: list[str] = Field(default_factory=list)
+    explanation: str | None = None
 
 
 class NearbyPlacesResponse(BaseModel):
     query: str
     places: list[NearbyPlace]
     message: str | None = None
+    fallbackUsed: bool = False
+    fallbackMessage: str | None = None
+    aiRankingUsed: bool = False

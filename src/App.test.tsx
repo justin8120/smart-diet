@@ -207,10 +207,19 @@ function mockOnlineApi() {
             address: "台北市信義區測試路 1 號",
             rating: 4.5,
             distanceMeters: 320,
+            openNow: true,
             types: ["restaurant", "food"],
             mapUrl: "https://maps.google.com/?cid=123",
+            googleMapsUrl: "https://maps.google.com/?cid=123",
+            aiMapScore: 91,
+            matchedReasons: ["距離近", "評分高", "符合高蛋白健康餐需求"],
+            riskNotes: ["實際菜單與食材仍需以店家現場或官方資訊為準。"],
+            explanation:
+              "此店家類型接近健康餐，較符合高蛋白與減脂需求；但是否完全不含海鮮仍需以店家菜單為準。",
           },
         ],
+        fallbackUsed: true,
+        message: "目前使用示範店家資料，正式部署可接 Google Places API。",
       })
     }
     return jsonResponse({ detail: "Not found" }, { status: 404 })
@@ -1492,6 +1501,10 @@ describe("App", () => {
     render(<App />)
 
     await screen.findByText(/Provider/)
+    await user.type(
+      screen.getByLabelText("\u8acb\u63cf\u8ff0\u4f60\u7684\u98f2\u98df\u9700\u6c42"),
+      "\u6211\u60f3\u6e1b\u8102\uff0c\u4e0d\u8981\u6d77\u9bae\uff0c\u665a\u9910\u60f3\u5403\u9ad8\u86cb\u767d\u4f46\u4e0d\u8981\u592a\u6cb9\u3002",
+    )
     const buttons = await screen.findAllByRole("button", {
       name: "\u67e5\u770b\u9644\u8fd1\u5e97\u5bb6",
     })
@@ -1553,11 +1566,17 @@ describe("App", () => {
     expect(body.mealName).toBeTruthy()
     expect(body.mealType).toBeTruthy()
     expect(body.tags).toEqual(expect.any(Array))
+    expect(body.userTextPreference).toContain("\u6e1b\u8102")
+    expect(body.healthGoal).toBeTruthy()
+    expect(body.excludedIngredients).toEqual(expect.any(Array))
     expect(
       screen.queryByText(/\u6b63\u5728\u6a21\u64ec\u67e5\u8a62 Google Places/),
     ).not.toBeInTheDocument()
     expect(screen.queryByText("\u6e2c\u8a66\u5065\u5eb7\u9910\u5e97")).not.toBeInTheDocument()
     expect(await screen.findByText(/restaurant \/ food/)).toBeInTheDocument()
+    expect(screen.getByText(/AI 地圖推薦分數：91/)).toBeInTheDocument()
+    expect(screen.getByText(/推薦理由：此店家類型接近健康餐/)).toBeInTheDocument()
+    expect(screen.getByText(/目前使用示範店家資料/)).toBeInTheDocument()
   })
 
   test("google nearby mode shows a location prompt when geolocation is denied", async () => {
@@ -1592,7 +1611,7 @@ describe("App", () => {
 
     expect(
       await screen.findByText(
-        "\u555f\u7528\u5b9a\u4f4d\u4ee5\u67e5\u770b\u9644\u8fd1\u985e\u4f3c\u5e97\u5bb6",
+        "\u9700\u8981\u5b9a\u4f4d\u6b0a\u9650\u624d\u80fd\u67e5\u8a62\u9644\u8fd1\u5e97\u5bb6\u3002",
       ),
     ).toBeInTheDocument()
     expect(

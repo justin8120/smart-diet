@@ -208,6 +208,9 @@ async def nearby_places(request: NearbyPlacesRequest) -> NearbyPlacesResponse:
         meal_name=request.mealName,
         meal_type=request.mealType,
         tags=request.tags,
+        user_text_preference=request.userTextPreference,
+        health_goal=request.healthGoal,
+        excluded_ingredients=request.excludedIngredients,
         radius_meters=request.radiusMeters,
     )
 

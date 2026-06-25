@@ -84,14 +84,23 @@ export type NearbyPlace = {
   address: string
   rating: number | null
   distanceMeters: number | null
+  openNow?: boolean | null
   types: string[]
   mapUrl: string
+  googleMapsUrl?: string | null
+  aiMapScore?: number | null
+  matchedReasons?: string[]
+  riskNotes?: string[]
+  explanation?: string | null
 }
 
 export type NearbyPlacesResponse = {
   query: string
   places: NearbyPlace[]
   message?: string | null
+  fallbackUsed?: boolean
+  fallbackMessage?: string | null
+  aiRankingUsed?: boolean
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -505,6 +514,9 @@ export async function fetchNearbyPlaces(payload: {
   mealName: string
   mealType: string
   tags: string[]
+  userTextPreference?: string
+  healthGoal?: string
+  excludedIngredients?: string[]
   radiusMeters?: number
 }): Promise<NearbyPlacesResponse> {
   return request<NearbyPlacesResponse>("/api/nearby-places", {

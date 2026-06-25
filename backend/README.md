@@ -59,6 +59,20 @@ pip install -r requirements.txt
 - `WEB_VERIFY_ENABLED`: 圖片分析後是否啟用網路比對校正
 - `WEB_VERIFY_PROVIDER`: 目前支援 `gemini_grounding`
 
+## AI Map Store Recommendation
+
+`POST /api/nearby-places` supports AI-assisted map recommendation. The request can include `mealName`, `mealType`, `tags`, `userTextPreference`, `healthGoal`, `excludedIngredients`, `lat`, `lng`, and `radiusMeters`. The backend builds a Places query from meal context, fetches nearby candidates, then ranks stores by distance, Google rating, opening status, meal-type relevance, health-goal fit, and allergy / excluded-ingredient risk.
+
+The response includes `aiMapScore`, `matchedReasons`, `riskNotes`, `explanation`, `openNow`, `distanceMeters`, `rating`, and Google Maps URL fields. If `GOOGLE_MAPS_API_KEY` is missing or Google Places fails, the API returns mock places with `fallbackUsed=true` instead of raising a 500 error.
+
+Backend environment variable:
+
+```bash
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+```
+
+Google Maps / Places API key must stay in the backend environment only. The frontend calls `/api/nearby-places` and must not store the key directly.
+
 ## API Endpoints
 
 - `GET /api/health`
@@ -68,6 +82,7 @@ pip install -r requirements.txt
 - `GET /api/meals`
 - `POST /api/meals`
 - `POST /api/recommend`
+- `POST /api/nearby-places`
 
 ## User Meal Storage
 

@@ -14,6 +14,20 @@
 
 推薦流程為：先排除不完整餐點與禁忌食材，再由 AI 對安全候選餐點排序；若 AI 排序服務暫時不可用，系統會自動改用基本條件推薦並提示使用者。
 
+## AI map store recommendation flow
+
+本系統除了 AI 餐點分析與 AI 個人化推薦外，也加入地圖式店家推薦。使用者取得推薦餐點後，可根據目前位置查詢附近可能提供相似餐點的店家。系統會結合餐點名稱、餐點類型、使用者自然語言需求、距離與店家評分，產生 AI 地圖推薦分數與推薦理由。此功能讓系統從「推薦吃什麼」延伸到「附近可以去哪裡吃」，更符合實際飲食決策情境。
+
+地圖推薦流程會先由後端依餐點建立 Google Places 查詢關鍵字，例如「雞胸肉健康餐」會轉成「雞胸肉 健康餐 餐盒 高蛋白」。Places 回傳候選店家後，系統再依距離、評分、營業狀態、餐點類型符合度、健康目標與禁忌食材風險進行 AI / rule-based reranking，回傳 `aiMapScore`、`matchedReasons`、`riskNotes` 與可解釋推薦理由。若 `GOOGLE_MAPS_API_KEY` 未設定或 API 失敗，系統會使用示範店家資料，避免展示中斷。
+
+後端環境變數：
+
+```bash
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+```
+
+前端不可直接存放 Google Maps API key；前端只呼叫後端 `/api/nearby-places`。
+
 ## Features
 
 - 文字、圖片、URL 餐點分析
