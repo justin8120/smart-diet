@@ -61,8 +61,8 @@ export type AiRecommendation = {
   mealId: string
   mealName: string
   aiScore: number
-  matchedNeeds: string[]
-  riskNotes: string[]
+  matchedNeeds: string[] | string
+  riskNotes: string[] | string
   explanation: string
 }
 

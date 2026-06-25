@@ -319,6 +319,71 @@ describe("App", () => {
     expect(screen.getByText("蛋白質高且熱量適中。")).toBeInTheDocument()
   })
 
+  test("normalizes AI recommendation score, matched needs, risk notes and summary", async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.endsWith("/api/health"))
+          return jsonResponse({
+            status: "ok",
+            aiProvider: "mock",
+            aiConfigured: true,
+            model: "mock",
+            fallbackEnabled: true,
+          })
+        if (url.endsWith("/api/meals")) return jsonResponse(backendMeals)
+        if (url.endsWith("/api/recommend")) {
+          return jsonResponse({
+            interpretedNeeds: {
+              healthGoal: "減脂",
+              preferredTags: ["高蛋白"],
+              excludedIngredients: ["海鮮"],
+              notes: "使用者希望晚餐適合運動後補充。",
+            },
+            rankedMeals: [
+              {
+                mealId: leanChickenMeal.id,
+                mealName: "雞胸肉便當",
+                aiScore: 88,
+                matchedNeeds: "符合「高蛋白」「減脂」需求",
+                riskNotes: [],
+                explanation: "此餐點蛋白質含量較高、熱量中等，符合減脂與高蛋白需求，且不含海鮮。",
+              },
+            ],
+            meals: [leanChickenMeal],
+            usedAiRanking: true,
+            fallbackMessage: null,
+          })
+        }
+        return jsonResponse({ detail: "Not found" }, { status: 404 })
+      }),
+    )
+
+    render(<App />)
+
+    await user.type(
+      screen.getByLabelText("請描述你的飲食需求"),
+      "我想減脂，不要海鮮，晚餐想吃高蛋白但不要太油。",
+    )
+    await user.click(screen.getByRole("button", { name: "搜尋 / 推薦" }))
+
+    expect(await screen.findByText(/目標：減脂/)).toBeInTheDocument()
+    expect(screen.getByText(/AI 推薦分數 88/)).toBeInTheDocument()
+    expect(screen.getByText(/高蛋白、減脂/)).toBeInTheDocument()
+    expect(screen.getByText(/無明顯風險/)).toBeInTheDocument()
+    expect(screen.getByLabelText("目前 AI 推薦條件")).toHaveTextContent(
+      "目前條件：減脂，標籤：高蛋白，排除：海鮮",
+    )
+    expect(
+      screen.getByText("此餐點蛋白質含量較高、熱量中等，符合減脂與高蛋白需求，且不含海鮮。"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getAllByRole("button", { name: "\u67e5\u770b\u9644\u8fd1\u5e97\u5bb6" }).length,
+    ).toBeGreaterThan(0)
+  })
+
   test("syncs one local meal into 121 backend meals and refreshes the counts", async () => {
     const user = userEvent.setup()
     let serverMeals = Array.from({ length: 121 }, (_, index) => ({

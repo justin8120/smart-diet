@@ -154,6 +154,38 @@ function toggleValue<T>(values: T[], value: T) {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value]
 }
 
+function normalizeDisplayList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((item) => String(item).trim()).filter(Boolean))]
+  }
+  if (typeof value === "string") {
+    const text = value.trim()
+    if (!text) return []
+    const quoted = [...text.matchAll(/[「『"]([^」』"]+)[」』"]/g)].map((match) => match[1])
+    if (quoted.length > 0) return [...new Set(quoted.map((item) => item.trim()).filter(Boolean))]
+    if (/[、,，/；;]/.test(text)) {
+      return [
+        ...new Set(
+          text
+            .split(/[、,，/；;]/)
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
+      ]
+    }
+    const knownTerms = ["高蛋白", "低油", "低脂", "低卡", "減脂", "增肌", "均衡飲食", "海鮮"]
+    const extracted = knownTerms.filter((term) => text.includes(term))
+    if (extracted.length > 0) return extracted
+    return text.length <= 12 ? [text] : []
+  }
+  return []
+}
+
+function formatDisplayList(value: unknown, emptyText = "未設定") {
+  const list = normalizeDisplayList(value)
+  return list.length > 0 ? list.join("、") : emptyText
+}
+
 function formatList(values: string[]) {
   return values.length > 0 ? values.join("、") : "未設定"
 }
@@ -1369,6 +1401,18 @@ export function App() {
     [recommendedMeals],
   )
   const displayedMeals = hasSearched ? completeRecommendedMeals : mealDataset
+  const currentSummaryGoal =
+    aiRecommendation?.interpretedNeeds.healthGoal && hasSearched
+      ? aiRecommendation.interpretedNeeds.healthGoal
+      : goal
+  const currentSummaryTags =
+    aiRecommendation?.interpretedNeeds.preferredTags && hasSearched
+      ? aiRecommendation.interpretedNeeds.preferredTags
+      : selectedTags
+  const currentSummaryExclusions =
+    aiRecommendation?.interpretedNeeds.excludedIngredients && hasSearched
+      ? aiRecommendation.interpretedNeeds.excludedIngredients
+      : excludedAllergens
   const aiStatusLabel = backendLoading ? "連線中" : backendError ? "未連線" : "已連線"
   const apiStatusLabel = backendLoading
     ? "檢查中"
@@ -2068,6 +2112,11 @@ export function App() {
             </p>
           </div>
 
+          <p aria-label="目前 AI 推薦條件" className="source-note">
+            目前條件：{currentSummaryGoal}，標籤：{formatDisplayList(currentSummaryTags)}
+            ，排除：{formatDisplayList(currentSummaryExclusions)}
+          </p>
+
           {!hasSearched ? (
             <p className="empty-state">請選擇條件後開始推薦，或先查看下方餐點資料集。</p>
           ) : null}
@@ -2086,8 +2135,8 @@ export function App() {
               <h3>AI 理解到的需求</h3>
               <p>
                 目標：{aiRecommendation.interpretedNeeds.healthGoal || "未指定"}；偏好：
-                {formatList(aiRecommendation.interpretedNeeds.preferredTags)}；排除：
-                {formatList(aiRecommendation.interpretedNeeds.excludedIngredients)}
+                {formatDisplayList(aiRecommendation.interpretedNeeds.preferredTags)}；排除：
+                {formatDisplayList(aiRecommendation.interpretedNeeds.excludedIngredients)}
               </p>
               <p>{aiRecommendation.interpretedNeeds.notes}</p>
               {aiRecommendation.rankedMeals.map((item) => (
@@ -2101,11 +2150,11 @@ export function App() {
                   </p>
                   <p>
                     <strong>符合條件：</strong>
-                    {formatList(item.matchedNeeds)}
+                    {formatDisplayList(item.matchedNeeds)}
                   </p>
                   <p>
                     <strong>風險提醒：</strong>
-                    {formatList(item.riskNotes)}
+                    {formatDisplayList(item.riskNotes, "無明顯風險")}
                   </p>
                 </article>
               ))}

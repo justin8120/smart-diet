@@ -2143,6 +2143,124 @@ def test_ai_recommendation_falls_back_when_ranker_fails(monkeypatch):
     assert payload["fallbackMessage"] == "AI 推薦排序暫時不可用，已改用基本條件推薦。"
 
 
+def test_ai_recommendation_normalizes_score_and_matched_needs(monkeypatch):
+    from app.services import ai_recommender
+
+    chicken = meal_fixture(
+        "雞胸肉便當",
+        tags=["高蛋白", "低油"],
+        ingredients=["雞胸肉", "蔬菜", "糙米"],
+        allergens=[],
+    ).model_copy(update={"mealType": "健康餐", "estimatedCalories": 480, "estimatedProtein": 35})
+
+    class FakeProvider:
+        name = "openai"
+        configured = True
+        model = "fake"
+        api_key = "fake"
+        base_url = None
+
+    monkeypatch.setattr(ai_recommender, "get_ai_provider", lambda: FakeProvider())
+    monkeypatch.setattr(
+        ai_recommender,
+        "_provider_rank",
+        lambda *_args, **_kwargs: [
+            {
+                "mealId": chicken.id,
+                "mealName": chicken.mealName,
+                "aiScore": "88",
+                "matchedNeeds": "符合「高蛋白」「減脂」需求",
+                "riskNotes": "",
+                "explanation": "`此餐點蛋白質含量較高、熱量中等，符合減脂與高蛋白需求。`",
+            }
+        ],
+    )
+
+    ranked = ai_recommender.rank_meals(
+        user_text_preference="我想減脂，不要海鮮，晚餐想吃高蛋白但不要太油。",
+        health_goal="減脂",
+        selected_tags=[],
+        excluded_ingredients=["海鮮"],
+        candidate_meals=[chicken],
+    )["rankedMeals"][0]
+
+    assert ranked["aiScore"] == 88
+    assert isinstance(ranked["aiScore"], int)
+    assert ranked["matchedNeeds"] == ["高蛋白", "減脂"]
+    assert ranked["riskNotes"] == []
+    assert "`" not in ranked["explanation"]
+
+
+def test_ai_recommendation_missing_score_uses_fallback_score(monkeypatch):
+    from app.services import ai_recommender
+
+    chicken = meal_fixture(
+        "舒肥雞胸餐",
+        tags=["高蛋白", "低油"],
+        ingredients=["雞胸肉", "青菜"],
+        allergens=[],
+    ).model_copy(update={"mealType": "健康餐", "estimatedCalories": 420, "estimatedProtein": 32})
+
+    class FakeProvider:
+        name = "openai"
+        configured = True
+        model = "fake"
+        api_key = "fake"
+        base_url = None
+
+    monkeypatch.setattr(ai_recommender, "get_ai_provider", lambda: FakeProvider())
+    monkeypatch.setattr(
+        ai_recommender,
+        "_provider_rank",
+        lambda *_args, **_kwargs: [
+            {
+                "mealId": chicken.id,
+                "matchedNeeds": "高蛋白、減脂",
+                "explanation": "符合需求",
+            }
+        ],
+    )
+
+    ranked = ai_recommender.rank_meals(
+        user_text_preference="我想減脂，不要海鮮，高蛋白，不要太油。",
+        health_goal="減脂",
+        selected_tags=[],
+        excluded_ingredients=["海鮮"],
+        candidate_meals=[chicken],
+    )["rankedMeals"][0]
+
+    assert 75 <= ranked["aiScore"] <= 95
+    assert ranked["aiScore"] != 0
+    assert ranked["matchedNeeds"] == ["高蛋白", "減脂"]
+
+
+def test_ai_recommendation_keeps_excluded_meals_out(monkeypatch):
+    monkeypatch.setattr(
+        meals_store,
+        "load_meals",
+        lambda: [
+            meal_fixture("鮮蝦健康餐", tags=["高蛋白"], ingredients=["蝦仁", "蔬菜"], allergens=["海鮮"]),
+            meal_fixture("雞胸肉健康餐", tags=["高蛋白", "低油"], ingredients=["雞胸肉", "蔬菜"], allergens=[]),
+        ],
+    )
+
+    response = client.post(
+        "/api/recommend",
+        json={
+            "healthGoal": "減脂",
+            "tags": [],
+            "excludedIngredients": ["海鮮"],
+            "keyword": None,
+            "userTextPreference": "我想減脂，不要海鮮，高蛋白。",
+        },
+    )
+
+    payload = response.json()
+    assert [meal["mealName"] for meal in payload["meals"]] == ["雞胸肉健康餐"]
+    assert [meal["mealName"] for meal in payload["rankedMeals"]] == ["雞胸肉健康餐"]
+    assert payload["rankedMeals"][0]["aiScore"] > 0
+
+
 def test_dataset_recommendation_exclusions_and_keyword_search():
     pork_response = client.post(
         "/api/recommend",
