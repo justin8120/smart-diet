@@ -190,6 +190,51 @@ function formatList(values: string[]) {
   return values.length > 0 ? values.join("、") : "未設定"
 }
 
+function normalizeDisplayListSafe(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((item) => String(item).trim()).filter(Boolean))]
+  }
+  if (typeof value !== "string") return []
+  const text = value.trim()
+  if (!text) return []
+  const quoted = [...text.matchAll(/[\u300c\u300e"]([^\u300d\u300f"]+)[\u300d\u300f"]/g)].map(
+    (match) => match[1],
+  )
+  if (quoted.length > 0) return [...new Set(quoted.map((item) => item.trim()).filter(Boolean))]
+  if (/[\u3001,，/；;]/.test(text)) {
+    return [
+      ...new Set(
+        text
+          .split(/[\u3001,，/；;]/)
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ),
+    ]
+  }
+  const knownTerms = [
+    "\u9ad8\u86cb\u767d",
+    "\u4f4e\u6cb9",
+    "\u4f4e\u8102",
+    "\u4f4e\u5361",
+    "\u6e1b\u8102",
+    "\u589e\u808c",
+    "\u5747\u8861\u98f2\u98df",
+    "\u6d77\u9bae",
+  ]
+  const extracted = knownTerms.filter((term) => text.includes(term))
+  if (extracted.length > 0) return extracted
+  return text.length <= 12 ? [text] : []
+}
+
+function formatDisplayListSafe(value: unknown, emptyText = "\u672a\u8a2d\u5b9a") {
+  const list = normalizeDisplayListSafe(value)
+  return list.length > 0 ? list.join("\u3001") : emptyText
+}
+
+function formatRiskNotes(value: unknown) {
+  return formatDisplayListSafe(value, "\u7121\u660e\u986f\u98a8\u96aa")
+}
+
 function formatCalories(value: number) {
   return value > 0 ? `${value} kcal` : "約 500 kcal"
 }
@@ -1406,13 +1451,51 @@ export function App() {
       ? aiRecommendation.interpretedNeeds.healthGoal
       : goal
   const currentSummaryTags =
-    aiRecommendation?.interpretedNeeds.preferredTags && hasSearched
+    aiRecommendation?.interpretedNeeds.preferredTags?.length && hasSearched
       ? aiRecommendation.interpretedNeeds.preferredTags
       : selectedTags
   const currentSummaryExclusions =
-    aiRecommendation?.interpretedNeeds.excludedIngredients && hasSearched
+    aiRecommendation?.interpretedNeeds.excludedIngredients?.length && hasSearched
       ? aiRecommendation.interpretedNeeds.excludedIngredients
       : excludedAllergens
+  const mealLookupForAiCards = useMemo(() => {
+    const lookup = new Map<string, Meal>()
+    for (const meal of [...mealDataset, ...recommendedMeals]) {
+      lookup.set(meal.id, meal)
+    }
+    return lookup
+  }, [mealDataset, recommendedMeals])
+  const mealForAiRecommendation = (item: AiRecommendation): Meal => {
+    const original = mealLookupForAiCards.get(item.mealId)
+    return {
+      ...(original ?? {
+        id: item.mealId,
+        name: item.mealName,
+        type: item.mealType ?? "\u63a8\u85a6\u9910\u9ede",
+        calories: item.estimatedCalories ?? 0,
+        protein: item.estimatedProtein ?? 0,
+        tags: (item.tags ?? []) as DietTag[],
+        goals: [],
+        ingredients: item.mainIngredients ?? [],
+        allergens: (item.allergens ?? []) as Allergen[],
+        reason: item.explanation,
+        sourceType: "\u8cc7\u6599\u96c6",
+        isAiGenerated: true,
+      }),
+      id: original?.id ?? item.mealId,
+      name: item.mealName || original?.name || "",
+      type: item.mealType ?? original?.type ?? "\u63a8\u85a6\u9910\u9ede",
+      tags: ((item.tags?.length ? item.tags : original?.tags) ?? []) as DietTag[],
+      ingredients: item.mainIngredients?.length
+        ? item.mainIngredients
+        : (original?.ingredients ?? []),
+      allergens: ((item.allergens?.length ? item.allergens : original?.allergens) ??
+        []) as Allergen[],
+      calories: item.estimatedCalories ?? original?.calories ?? 0,
+      protein: item.estimatedProtein ?? original?.protein ?? 0,
+      reason: item.explanation || original?.reason || "",
+    }
+  }
   const aiStatusLabel = backendLoading ? "連線中" : backendError ? "未連線" : "已連線"
   const apiStatusLabel = backendLoading
     ? "檢查中"
@@ -2117,6 +2200,24 @@ export function App() {
             ，排除：{formatDisplayList(currentSummaryExclusions)}
           </p>
 
+          <p aria-label="目前 AI 推薦條件" className="source-note ai-condition-summary">
+            {"目前條件："}
+            {currentSummaryGoal}
+            {"，標籤："}
+            {formatDisplayListSafe(currentSummaryTags)}
+            {"，排除："}
+            {formatDisplayListSafe(currentSummaryExclusions)}
+          </p>
+
+          <p aria-label="目前 AI 推薦條件" className="source-note ai-condition-summary-readable">
+            {"\u76ee\u524d\u689d\u4ef6\uff1a"}
+            {currentSummaryGoal}
+            {"\uff0c\u6a19\u7c64\uff1a"}
+            {formatDisplayListSafe(currentSummaryTags)}
+            {"\uff0c\u6392\u9664\uff1a"}
+            {formatDisplayListSafe(currentSummaryExclusions)}
+          </p>
+
           {!hasSearched ? (
             <p className="empty-state">請選擇條件後開始推薦，或先查看下方餐點資料集。</p>
           ) : null}
@@ -2150,12 +2251,22 @@ export function App() {
                   </p>
                   <p>
                     <strong>符合條件：</strong>
-                    {formatDisplayList(item.matchedNeeds)}
+                    {formatDisplayListSafe(item.matchedNeeds)}
                   </p>
                   <p>
                     <strong>風險提醒：</strong>
                     {formatDisplayList(item.riskNotes, "無明顯風險")}
                   </p>
+                  <p>
+                    <strong>{"\u98a8\u96aa\u63d0\u9192\uff1a"}</strong>
+                    {formatRiskNotes(item.riskNotes)}
+                  </p>
+                  <MealCard
+                    meal={mealForAiRecommendation(item)}
+                    userTextPreference={userTextPreference}
+                    healthGoal={currentSummaryGoal}
+                    excludedIngredients={normalizeDisplayListSafe(currentSummaryExclusions)}
+                  />
                 </article>
               ))}
             </div>
@@ -2167,11 +2278,8 @@ export function App() {
                 meal={meal}
                 key={meal.id}
                 userTextPreference={userTextPreference}
-                healthGoal={goal}
-                excludedIngredients={getEffectiveExcludedIngredients(
-                  selectedTags,
-                  excludedAllergens,
-                )}
+                healthGoal={currentSummaryGoal}
+                excludedIngredients={normalizeDisplayListSafe(currentSummaryExclusions)}
               />
             ))}
           </div>

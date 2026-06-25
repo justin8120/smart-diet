@@ -2261,6 +2261,67 @@ def test_ai_recommendation_keeps_excluded_meals_out(monkeypatch):
     assert payload["rankedMeals"][0]["aiScore"] > 0
 
 
+def test_ai_recommendation_ranked_meals_keep_map_context_fields(monkeypatch):
+    monkeypatch.setattr(
+        meals_store,
+        "load_meals",
+        lambda: [
+            meal_fixture(
+                "雞胸肉健康餐",
+                tags=["高蛋白", "低油"],
+                ingredients=["雞胸肉", "蔬菜"],
+                allergens=[],
+            ).model_copy(update={"mealType": "健康餐", "estimatedCalories": 430, "estimatedProtein": 34})
+        ],
+    )
+
+    response = client.post(
+        "/api/recommend",
+        json={
+            "healthGoal": "減脂",
+            "tags": [],
+            "excludedIngredients": ["海鮮"],
+            "keyword": None,
+            "userTextPreference": "我想減脂，不要海鮮，高蛋白。",
+        },
+    )
+
+    ranked = response.json()["rankedMeals"][0]
+    assert ranked["mealName"] == "雞胸肉健康餐"
+    assert ranked["mealType"] == "健康餐"
+    assert "高蛋白" in ranked["tags"]
+    assert "雞胸肉" in ranked["mainIngredients"]
+    assert ranked["estimatedCalories"] == 430
+    assert ranked["estimatedProtein"] == 34
+
+
+def test_ai_recommendation_fallback_keeps_interpreted_needs(monkeypatch):
+    from app.services import ai_recommender
+
+    monkeypatch.setattr(ai_recommender, "rank_meals", lambda **_: (_ for _ in ()).throw(RuntimeError("upstream")))
+    monkeypatch.setattr(
+        meals_store,
+        "load_meals",
+        lambda: [meal_fixture("雞胸肉便當", tags=["高蛋白"], ingredients=["雞胸肉"], allergens=[])],
+    )
+    response = client.post(
+        "/api/recommend",
+        json={
+            "healthGoal": "減脂",
+            "tags": [],
+            "excludedIngredients": ["海鮮"],
+            "keyword": None,
+            "userTextPreference": "我想減脂，不要海鮮，高蛋白。",
+        },
+    )
+
+    payload = response.json()
+    assert payload["usedAiRanking"] is False
+    assert payload["interpretedNeeds"]["healthGoal"] == "減脂"
+    assert "高蛋白" in payload["interpretedNeeds"]["preferredTags"]
+    assert "海鮮" in payload["interpretedNeeds"]["excludedIngredients"]
+
+
 def test_dataset_recommendation_exclusions_and_keyword_search():
     pork_response = client.post(
         "/api/recommend",

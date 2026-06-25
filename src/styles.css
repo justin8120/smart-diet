@@ -569,6 +569,22 @@ fieldset {
   border-top: 1px solid #dde5ef;
 }
 
+#results > .section-heading > p {
+  display: none;
+}
+
+.ai-condition-summary {
+  display: none;
+}
+
+.ai-condition-summary-readable {
+  margin-top: -8px;
+}
+
+.analysis-result > .meal-card > p:nth-of-type(3) {
+  display: none;
+}
+
 .compact-heading {
   margin-bottom: 0;
 }

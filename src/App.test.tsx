@@ -316,7 +316,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { name: "AI 理解到的需求" })).toBeInTheDocument()
     expect(screen.getByText(/AI 推薦分數 92/)).toBeInTheDocument()
-    expect(screen.getByText("蛋白質高且熱量適中。")).toBeInTheDocument()
+    expect(screen.getAllByText("蛋白質高且熱量適中。").length).toBeGreaterThan(0)
   })
 
   test("normalizes AI recommendation score, matched needs, risk notes and summary", async () => {
@@ -372,16 +372,128 @@ describe("App", () => {
     expect(await screen.findByText(/目標：減脂/)).toBeInTheDocument()
     expect(screen.getByText(/AI 推薦分數 88/)).toBeInTheDocument()
     expect(screen.getByText(/高蛋白、減脂/)).toBeInTheDocument()
-    expect(screen.getByText(/無明顯風險/)).toBeInTheDocument()
-    expect(screen.getByLabelText("目前 AI 推薦條件")).toHaveTextContent(
-      "目前條件：減脂，標籤：高蛋白，排除：海鮮",
-    )
+    expect(screen.getAllByText(/無明顯風險/).length).toBeGreaterThan(0)
     expect(
-      screen.getByText("此餐點蛋白質含量較高、熱量中等，符合減脂與高蛋白需求，且不含海鮮。"),
-    ).toBeInTheDocument()
+      screen
+        .getAllByLabelText("目前 AI 推薦條件")
+        .some((item) => item.textContent === "目前條件：減脂，標籤：高蛋白，排除：海鮮"),
+    ).toBe(true)
+    expect(
+      screen.getAllByText("此餐點蛋白質含量較高、熱量中等，符合減脂與高蛋白需求，且不含海鮮。")
+        .length,
+    ).toBeGreaterThan(0)
     expect(
       screen.getAllByRole("button", { name: "\u67e5\u770b\u9644\u8fd1\u5e97\u5bb6" }).length,
     ).toBeGreaterThan(0)
+  })
+
+  test("AI assisted recommendation card keeps nearby places flow during fallback", async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      void _init
+      const url = String(input)
+      if (url.endsWith("/api/health"))
+        return jsonResponse({
+          status: "ok",
+          aiProvider: "mock",
+          aiConfigured: true,
+          model: "mock",
+          fallbackEnabled: true,
+        })
+      if (url.endsWith("/api/meals")) return jsonResponse(backendMeals)
+      if (url.endsWith("/api/recommend")) {
+        return jsonResponse({
+          interpretedNeeds: {
+            healthGoal: "減脂",
+            preferredTags: ["高蛋白"],
+            excludedIngredients: ["海鮮"],
+            notes: "使用者希望晚餐適合運動後補充。",
+          },
+          rankedMeals: [
+            {
+              mealId: leanChickenMeal.id,
+              mealName: "雞胸肉便當",
+              mealType: "健康餐",
+              tags: ["高蛋白", "低油"],
+              mainIngredients: ["雞胸肉", "蔬菜"],
+              allergens: [],
+              estimatedCalories: 480,
+              estimatedProtein: 35,
+              aiScore: 88,
+              matchedNeeds: ["高蛋白", "減脂"],
+              riskNotes: null,
+              explanation: "符合減脂與高蛋白需求。",
+            },
+          ],
+          meals: [leanChickenMeal],
+          usedAiRanking: false,
+          fallbackMessage: "AI 推薦排序暫時不可用，已改用基本條件推薦。",
+        })
+      }
+      if (url.endsWith("/api/nearby-places")) {
+        return jsonResponse({
+          query: "雞胸肉 健康餐 高蛋白",
+          places: [],
+          fallbackUsed: true,
+          message: "目前使用示範店家資料，正式部署可接 Google Places API。",
+        })
+      }
+      return jsonResponse({ detail: "Not found" }, { status: 404 })
+    })
+    const getCurrentPosition = vi.fn((success: PositionCallback) =>
+      success({
+        coords: {
+          latitude: 25.033,
+          longitude: 121.5654,
+          accuracy: 10,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+      } as GeolocationPosition),
+    )
+    __setNearbyRuntimeEnvForTests({
+      VITE_NEARBY_MODE: "google",
+      VITE_API_BASE_URL: "https://smart-diet-api.example",
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    Object.defineProperty(navigator, "geolocation", {
+      value: { getCurrentPosition },
+      configurable: true,
+    })
+
+    render(<App />)
+
+    await user.type(screen.getByLabelText("請描述你的飲食需求"), "我想減脂，不要海鮮，高蛋白。")
+    await user.click(screen.getByRole("button", { name: "搜尋 / 推薦" }))
+    expect(
+      await screen.findByText("AI 推薦排序暫時不可用，已改用基本條件推薦。"),
+    ).toBeInTheDocument()
+
+    const nearbyButtons = await screen.findAllByRole("button", {
+      name: "\u67e5\u770b\u9644\u8fd1\u5e97\u5bb6",
+    })
+    expect(nearbyButtons.length).toBeGreaterThan(0)
+    await user.click(nearbyButtons[0])
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input]) => String(input).endsWith("/api/nearby-places")),
+      ).toBe(true),
+    )
+    const nearbyCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).endsWith("/api/nearby-places"),
+    )
+    const body = JSON.parse(String(nearbyCall?.[1]?.body ?? "{}"))
+    expect(body).toMatchObject({
+      mealName: "雞胸肉便當",
+      mealType: "健康餐",
+      healthGoal: "減脂",
+      excludedIngredients: ["海鮮"],
+    })
+    expect(body.tags).toContain("高蛋白")
   })
 
   test("syncs one local meal into 121 backend meals and refreshes the counts", async () => {

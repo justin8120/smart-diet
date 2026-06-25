@@ -60,6 +60,12 @@ export type RecommendPayload = {
 export type AiRecommendation = {
   mealId: string
   mealName: string
+  mealType?: string | null
+  tags?: string[]
+  mainIngredients?: string[]
+  allergens?: string[]
+  estimatedCalories?: number | null
+  estimatedProtein?: number | null
   aiScore: number
   matchedNeeds: string[] | string
   riskNotes: string[] | string

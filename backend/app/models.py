@@ -64,6 +64,12 @@ class InterpretedNeeds(BaseModel):
 class RankedMeal(BaseModel):
     mealId: str
     mealName: str
+    mealType: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    mainIngredients: list[str] = Field(default_factory=list)
+    allergens: list[str] = Field(default_factory=list)
+    estimatedCalories: float | None = None
+    estimatedProtein: float | None = None
     aiScore: int = Field(ge=0, le=100)
     matchedNeeds: list[str] = Field(default_factory=list)
     riskNotes: list[str] = Field(default_factory=list)
