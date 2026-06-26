@@ -1925,7 +1925,7 @@ export function App() {
             ? response.meals
             : keywordFallback.length > 0
               ? keywordFallback
-              : localRecommendation,
+              : [],
         ).slice(0, limit)
         setAiRecommendation(response.ai ?? null)
         setRecommendationMessage(response.ai?.message ?? "")
