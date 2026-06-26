@@ -2375,20 +2375,6 @@ export function App() {
             </p>
           </div>
 
-          <p aria-label="目前 AI 推薦條件" className="source-note">
-            目前條件：{currentSummaryGoal}，標籤：{formatDisplayList(currentSummaryTags)}
-            ，排除：{formatDisplayList(currentSummaryExclusions)}
-          </p>
-
-          <p aria-label="目前 AI 推薦條件" className="source-note ai-condition-summary">
-            {"目前條件："}
-            {currentSummaryGoal}
-            {"，標籤："}
-            {formatDisplayListSafe(currentSummaryTags)}
-            {"，排除："}
-            {formatDisplayListSafe(currentSummaryExclusions)}
-          </p>
-
           <p aria-label="目前 AI 推薦條件" className="source-note ai-condition-summary-readable">
             {"\u76ee\u524d\u689d\u4ef6\uff1a"}
             {currentSummaryGoal}
