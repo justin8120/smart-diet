@@ -52,6 +52,10 @@ class RecommendRequest(BaseModel):
     keyword: str | None = None
     userTextPreference: str | None = None
     queryHistory: list[dict[str, object]] = Field(default_factory=list)
+    limit: int = 3
+    excludeMealIds: list[str] = Field(default_factory=list)
+    excludeMealNames: list[str] = Field(default_factory=list)
+    refreshToken: str | None = None
 
 
 class InterpretedNeeds(BaseModel):
@@ -82,6 +86,9 @@ class RecommendResponse(BaseModel):
     meals: list[MealAnalysisResult]
     usedAiRanking: bool
     fallbackMessage: str | None = None
+    fallbackUsed: bool = False
+    reusedPreviousResults: bool = False
+    message: str = ""
 
 
 class NearbyPlacesRequest(BaseModel):

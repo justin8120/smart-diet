@@ -371,7 +371,7 @@ describe("App", () => {
 
     expect(await screen.findByText(/目標：減脂/)).toBeInTheDocument()
     expect(screen.getByText(/AI 推薦分數 88/)).toBeInTheDocument()
-    expect(screen.getByText(/高蛋白、減脂/)).toBeInTheDocument()
+    expect(screen.getAllByText(/高蛋白、減脂/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/無明顯風險/).length).toBeGreaterThan(0)
     expect(
       screen

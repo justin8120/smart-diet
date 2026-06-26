@@ -54,6 +54,9 @@ type AiRecommendationSummary = {
   rankedMeals: AiRecommendation[]
   usedAiRanking: boolean
   fallbackMessage?: string | null
+  fallbackUsed?: boolean
+  reusedPreviousResults?: boolean
+  message?: string
 }
 
 type CustomListKind = "tag" | "avoid"
@@ -615,6 +618,22 @@ function mergeMealCollections(...collections: Meal[][]) {
   return order.map((key) => merged.get(key) as Meal)
 }
 
+function clampRecommendationLimit(value: number) {
+  return Math.max(1, Math.min(5, value))
+}
+
+function dedupeMealsByNormalizedName(values: Meal[]) {
+  const seen = new Set<string>()
+  const unique: Meal[] = []
+  for (const meal of values) {
+    const key = normalizeMealNameKey(meal.name)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    unique.push(meal)
+  }
+  return unique
+}
+
 function sleep(delayMs: number) {
   return new Promise((resolve) => window.setTimeout(resolve, delayMs))
 }
@@ -733,6 +752,29 @@ function filterLocalMeals(
         .includes(normalizedKeyword)
 
     return matchesGoal && matchesTags && avoidsAllergens && matchesKeyword
+  })
+}
+
+function searchLocalMealsByKeyword(
+  mealDataset: Meal[],
+  excludedAllergens: Allergen[],
+  keyword: string,
+) {
+  const normalizedKeyword = keyword.trim().toLowerCase()
+  if (!normalizedKeyword) return []
+  return mealDataset.filter((meal) => {
+    const avoidsAllergens = !mealMatchesExclusion(meal, excludedAllergens)
+    const searchableText = [
+      meal.name,
+      meal.type,
+      meal.reason,
+      ...meal.tags,
+      ...meal.ingredients,
+      ...meal.allergens,
+    ]
+      .join(" ")
+      .toLowerCase()
+    return avoidsAllergens && searchableText.includes(normalizedKeyword)
   })
 }
 
@@ -968,6 +1010,10 @@ type MealCardProps = {
   userTextPreference?: string
   healthGoal?: string
   excludedIngredients?: string[]
+  aiScore?: number
+  aiExplanation?: string
+  matchedNeeds?: unknown
+  riskNotes?: unknown
 }
 
 const defaultDemoPosition = { lat: 25.033, lng: 121.5654 }
@@ -977,6 +1023,10 @@ function MealCard({
   userTextPreference = "",
   healthGoal = "",
   excludedIngredients = [],
+  aiScore,
+  aiExplanation,
+  matchedNeeds,
+  riskNotes,
 }: MealCardProps) {
   const [showNearby, setShowNearby] = useState(false)
   const [nearbyState, setNearbyState] = useState<NearbyPanelState>({
@@ -1164,6 +1214,32 @@ function MealCard({
         </div>
         <span>{formatCalories(meal.calories)}</span>
       </div>
+      {typeof aiScore === "number" || aiExplanation || matchedNeeds || riskNotes ? (
+        <div className="ai-meal-summary">
+          {typeof aiScore === "number" ? (
+            <p>
+              <strong>{"AI \u63a8\u85a6\u5206\u6578\uff1a"}</strong>
+              {aiScore}
+            </p>
+          ) : null}
+          {aiExplanation ? (
+            <p>
+              <strong>{"\u63a8\u85a6\u539f\u56e0\uff1a"}</strong>
+              {aiExplanation}
+            </p>
+          ) : null}
+          {matchedNeeds ? (
+            <p>
+              <strong>{"\u7b26\u5408\u689d\u4ef6\uff1a"}</strong>
+              {formatDisplayListSafe(matchedNeeds)}
+            </p>
+          ) : null}
+          <p>
+            <strong>{"\u98a8\u96aa\u63d0\u9192\uff1a"}</strong>
+            {formatRiskNotes(riskNotes)}
+          </p>
+        </div>
+      ) : null}
       <div className="meal-facts">
         <div>
           <span>蛋白質</span>
@@ -1373,6 +1449,9 @@ export function App() {
   const [keyword, setKeyword] = useState("")
   const [userTextPreference, setUserTextPreference] = useState("")
   const [aiRecommendation, setAiRecommendation] = useState<AiRecommendationSummary | null>(null)
+  const [recommendationLimit, setRecommendationLimit] = useState(3)
+  const [recommendationMessage, setRecommendationMessage] = useState("")
+  const [lastRecommendedMeals, setLastRecommendedMeals] = useState<Meal[]>([])
   const [hasSearched, setHasSearched] = useState(false)
   const [recommendedMeals, setRecommendedMeals] = useState<Meal[]>(() =>
     mergeMealCollections(meals, loadStoredMeals()),
@@ -1386,6 +1465,7 @@ export function App() {
   const [analysisError, setAnalysisError] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isRecommending, setIsRecommending] = useState(false)
+  const [isRefreshingRecommendation, setIsRefreshingRecommendation] = useState(false)
   const [isSyncingLocalMeals, setIsSyncingLocalMeals] = useState(false)
   const [syncMessage, setSyncMessage] = useState("")
   const [showPersistenceNote, setShowPersistenceNote] = useState(false)
@@ -1445,7 +1525,11 @@ export function App() {
     () => recommendedMeals.filter(isCompleteMeal),
     [recommendedMeals],
   )
-  const displayedMeals = hasSearched ? completeRecommendedMeals : mealDataset
+  const displayedMeals = hasSearched
+    ? aiRecommendation
+      ? []
+      : completeRecommendedMeals
+    : mealDataset
   const currentSummaryGoal =
     aiRecommendation?.interpretedNeeds.healthGoal && hasSearched
       ? aiRecommendation.interpretedNeeds.healthGoal
@@ -1807,7 +1891,9 @@ export function App() {
   const handleRecommend = async () => {
     setHasSearched(true)
     setIsRecommending(true)
-    let results = localRecommendation
+    setRecommendationMessage("")
+    const limit = clampRecommendationLimit(recommendationLimit)
+    let results = dedupeMealsByNormalizedName(localRecommendation).slice(0, limit)
     const effectiveExcludedAllergens = getEffectiveExcludedIngredients(
       selectedTags,
       excludedAllergens,
@@ -1820,16 +1906,29 @@ export function App() {
           tags: selectedTags,
           excludedIngredients: effectiveExcludedAllergens,
           keyword: keyword.trim() || null,
-          userTextPreference: userTextPreference.trim(),
+          userTextPreference: userTextPreference.trim() || undefined,
           queryHistory: history.map((record) => ({
             healthGoal: record.goal,
             tags: record.tags,
             excludedIngredients: record.excludedAllergens,
             keyword: record.keyword,
           })),
+          limit,
         })
-        results = response.meals
+        const keywordFallback = searchLocalMealsByKeyword(
+          mealDataset,
+          effectiveExcludedAllergens,
+          keyword,
+        )
+        results = dedupeMealsByNormalizedName(
+          response.meals.length > 0 || userTextPreference.trim()
+            ? response.meals
+            : keywordFallback.length > 0
+              ? keywordFallback
+              : localRecommendation,
+        ).slice(0, limit)
         setAiRecommendation(response.ai ?? null)
+        setRecommendationMessage(response.ai?.message ?? "")
         setBackendError("")
       } else {
         setAiRecommendation({
@@ -1847,7 +1946,7 @@ export function App() {
     } catch {
       setBackendError("AI 後端尚未啟動，請先啟動 FastAPI server。")
       setIsOfflineMode(true)
-      results = localRecommendation
+      results = dedupeMealsByNormalizedName(localRecommendation).slice(0, limit)
       setAiRecommendation({
         interpretedNeeds: {
           healthGoal: goal,
@@ -1864,6 +1963,7 @@ export function App() {
     }
 
     setRecommendedMeals(results)
+    setLastRecommendedMeals(results)
     setHistory((records) =>
       [
         {
@@ -1876,6 +1976,72 @@ export function App() {
         ...records,
       ].slice(0, 5),
     )
+  }
+
+  const handleRefreshRecommendation = async () => {
+    if (isRecommending || isRefreshingRecommendation || completeRecommendedMeals.length === 0)
+      return
+    setIsRefreshingRecommendation(true)
+    setRecommendationMessage("")
+    const limit = clampRecommendationLimit(recommendationLimit)
+    const currentlyVisible = (
+      lastRecommendedMeals.length > 0 ? lastRecommendedMeals : completeRecommendedMeals
+    ).slice(0, limit)
+    const effectiveExcludedAllergens = getEffectiveExcludedIngredients(
+      selectedTags,
+      excludedAllergens,
+    )
+
+    try {
+      const response = await recommendMeals({
+        healthGoal: goal,
+        tags: selectedTags,
+        excludedIngredients: effectiveExcludedAllergens,
+        keyword: keyword.trim() || null,
+        userTextPreference: userTextPreference.trim() || undefined,
+        queryHistory: history.map((record) => ({
+          healthGoal: record.goal,
+          tags: record.tags,
+          excludedIngredients: record.excludedAllergens,
+          keyword: record.keyword,
+        })),
+        limit,
+        excludeMealIds: currentlyVisible.map((meal) => meal.id),
+        excludeMealNames: currentlyVisible.map((meal) => meal.name),
+        refreshToken: String(Date.now()),
+      })
+      const nextResults = dedupeMealsByNormalizedName(response.meals).slice(0, limit)
+      const previousNames = new Set(currentlyVisible.map((meal) => normalizeMealNameKey(meal.name)))
+      const hasRepeatedName = nextResults.some((meal) =>
+        previousNames.has(normalizeMealNameKey(meal.name)),
+      )
+      setRecommendedMeals(nextResults)
+      setLastRecommendedMeals(nextResults)
+      setAiRecommendation(response.ai ?? null)
+      setRecommendationMessage(
+        response.ai?.message ||
+          (hasRepeatedName
+            ? "\u53ef\u7528\u5019\u9078\u4e0d\u8db3\uff0c\u5df2\u91cd\u65b0\u986f\u793a\u90e8\u5206\u7d50\u679c\u3002"
+            : ""),
+      )
+      setBackendError("")
+    } catch {
+      const fallback = dedupeMealsByNormalizedName(
+        localRecommendation.filter(
+          (meal) => !currentlyVisible.some((visible) => visible.id === meal.id),
+        ),
+      ).slice(0, limit)
+      const nextResults = fallback.length > 0 ? fallback : currentlyVisible
+      setRecommendedMeals(nextResults)
+      setLastRecommendedMeals(nextResults)
+      setRecommendationMessage(
+        fallback.length > 0
+          ? "AI \u63a8\u85a6\u6392\u5e8f\u66ab\u6642\u4e0d\u53ef\u7528\uff0c\u5df2\u6539\u7528\u57fa\u672c\u689d\u4ef6\u63a8\u85a6\u3002"
+          : "\u53ef\u7528\u5019\u9078\u4e0d\u8db3\uff0c\u5df2\u91cd\u65b0\u986f\u793a\u90e8\u5206\u7d50\u679c\u3002",
+      )
+    } finally {
+      setIsRefreshingRecommendation(false)
+    }
   }
 
   return (
@@ -2130,6 +2296,20 @@ export function App() {
               />
             </label>
 
+            <label className="control-group recommendation-limit-control">
+              {"\u63a8\u85a6\u6578\u91cf"}
+              <select
+                aria-label="\u63a8\u85a6\u6578\u91cf"
+                value={recommendationLimit}
+                onChange={(event) =>
+                  setRecommendationLimit(clampRecommendationLimit(Number(event.target.value)))
+                }
+              >
+                <option value={3}>3</option>
+                <option value={5}>5</option>
+              </select>
+            </label>
+
             <CustomChoiceGroup
               legend="飲食標籤"
               defaultItems={dietTags}
@@ -2228,6 +2408,21 @@ export function App() {
             </p>
           ) : null}
 
+          {hasSearched && completeRecommendedMeals.length > 0 ? (
+            <div className="recommendation-refresh-row">
+              <button
+                className="utility-button"
+                type="button"
+                onClick={handleRefreshRecommendation}
+                disabled={isRecommending || isRefreshingRecommendation}
+              >
+                {isRefreshingRecommendation ? "\u5237\u65b0\u4e2d..." : "\u5237\u65b0\u63a8\u85a6"}
+              </button>
+            </div>
+          ) : null}
+
+          {recommendationMessage ? <p className="status-message">{recommendationMessage}</p> : null}
+
           {aiRecommendation ? (
             <div className="analysis-result" aria-label="AI 個人化推薦說明">
               {aiRecommendation.fallbackMessage ? (
@@ -2241,7 +2436,7 @@ export function App() {
               </p>
               <p>{aiRecommendation.interpretedNeeds.notes}</p>
               {aiRecommendation.rankedMeals.map((item) => (
-                <article className="meal-card" key={item.mealId}>
+                <div className="ai-recommendation-item" key={item.mealId}>
                   <h3>
                     {item.mealName} · AI 推薦分數 {item.aiScore}
                   </h3>
@@ -2263,11 +2458,15 @@ export function App() {
                   </p>
                   <MealCard
                     meal={mealForAiRecommendation(item)}
+                    aiScore={item.aiScore}
+                    aiExplanation={item.explanation}
+                    matchedNeeds={item.matchedNeeds}
+                    riskNotes={item.riskNotes}
                     userTextPreference={userTextPreference}
                     healthGoal={currentSummaryGoal}
                     excludedIngredients={normalizeDisplayListSafe(currentSummaryExclusions)}
                   />
-                </article>
+                </div>
               ))}
             </div>
           ) : null}

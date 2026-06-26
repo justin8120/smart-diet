@@ -55,6 +55,10 @@ export type RecommendPayload = {
   keyword: string | null
   userTextPreference?: string
   queryHistory?: Array<Record<string, unknown>>
+  limit?: number
+  excludeMealIds?: string[]
+  excludeMealNames?: string[]
+  refreshToken?: string | null
 }
 
 export type AiRecommendation = {
@@ -83,6 +87,9 @@ export type RecommendResponse = {
   meals: BackendMeal[]
   usedAiRanking: boolean
   fallbackMessage?: string | null
+  fallbackUsed?: boolean
+  reusedPreviousResults?: boolean
+  message?: string
 }
 
 export type NearbyPlace = {
@@ -510,6 +517,9 @@ export async function recommendMeals(payload: RecommendPayload): Promise<{
       rankedMeals: response.rankedMeals,
       usedAiRanking: response.usedAiRanking,
       fallbackMessage: response.fallbackMessage,
+      fallbackUsed: response.fallbackUsed,
+      reusedPreviousResults: response.reusedPreviousResults,
+      message: response.message,
     },
   }
 }

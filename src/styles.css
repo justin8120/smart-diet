@@ -581,12 +581,41 @@ fieldset {
   margin-top: -8px;
 }
 
-.analysis-result > .meal-card > p:nth-of-type(3) {
+.compact-heading {
+  margin-bottom: 0;
+}
+
+.recommendation-limit-control {
+  max-width: 220px;
+}
+
+.recommendation-refresh-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ai-recommendation-item {
+  display: grid;
+  gap: 0;
+}
+
+.ai-recommendation-item > h3,
+.ai-recommendation-item > p {
   display: none;
 }
 
-.compact-heading {
-  margin-bottom: 0;
+.ai-meal-summary {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #cfe5d9;
+  border-radius: 10px;
+  background: #f3fbf7;
+}
+
+.ai-meal-summary p {
+  margin: 0;
 }
 
 .nearby-grid {

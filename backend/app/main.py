@@ -1,11 +1,11 @@
-import os
 import json
+import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
@@ -14,19 +14,24 @@ from app.models import (
     MealUpsertResponse,
     NearbyPlacesRequest,
     NearbyPlacesResponse,
-    RecommendResponse,
     RecommendRequest,
+    RecommendResponse,
     TextAnalyzeRequest,
     UrlAnalyzeRequest,
 )
-from app.services import openai_meal_analyzer
-from app.services import ai_recommender
+from app.services import ai_recommender, openai_meal_analyzer
 from app.services.nearby_places import search_nearby_places
 from app.services.nutrition_enricher import normalize_and_enrich_result
 from app.storage.meals_store import add_meal, load_meals, recommend_meals
 
 
 load_dotenv()
+
+MAX_RECOMMENDATION_LIMIT = 5
+DEFAULT_RECOMMENDATION_LIMIT = 3
+AI_CANDIDATE_LIMIT = 15
+REUSED_RESULTS_MESSAGE = "\u53ef\u7528\u5019\u9078\u4e0d\u8db3\uff0c\u5df2\u91cd\u65b0\u986f\u793a\u90e8\u5206\u7d50\u679c\u3002"
+AI_FALLBACK_MESSAGE = "AI \u63a8\u85a6\u6392\u5e8f\u66ab\u6642\u4e0d\u53ef\u7528\uff0c\u5df2\u6539\u7528\u57fa\u672c\u689d\u4ef6\u63a8\u85a6\u3002"
 
 
 class UnicodeEscapedJSONResponse(JSONResponse):
@@ -63,6 +68,7 @@ async def readable_request_validation_error(
             content={"detail": _meal_request_validation_detail(error.errors())},
         )
     return await request_validation_exception_handler(request, error)
+
 
 frontend_origins = [
     origin.strip()
@@ -139,64 +145,81 @@ def create_meal(meal: MealAnalysisResult) -> MealUpsertResponse:
     return MealUpsertResponse(meal=saved_meal, action=action)
 
 
-def _meal_request_validation_detail(errors: list[dict[str, object]]) -> str:
-    for issue in errors:
-        location = ".".join(str(item) for item in issue.get("loc", []))
-        if "mealName" in location:
-            return "餐點名稱不足"
-        if "mainIngredients" in location:
-            return "缺少主要食材"
-        if "estimatedCalories" in location:
-            return "熱量不是有效數值"
-        if "sourceType" in location:
-            return "sourceType 格式不合法"
-        if "recommendationReason" in location:
-            return "推薦原因不完整"
-        if "tags" in location:
-            return "缺少餐點標籤"
-        if "mealType" in location:
-            return "餐點類型不足"
-    return "餐點資料格式不合法"
-
-
 @app.post("/api/recommend", response_model=list[MealAnalysisResult] | RecommendResponse)
 def recommend(request: RecommendRequest) -> list[MealAnalysisResult] | RecommendResponse:
-    # The storage layer is the safety gate: it filters incomplete meals and all
-    # allergies/avoidances before an AI model ever sees a candidate.
-    candidates = recommend_meals(
+    limit = _recommendation_limit(request.limit)
+
+    # The storage layer remains the safety gate: incomplete meals, allergies,
+    # avoidances and keyword filters are applied before AI sees any candidate.
+    safe_candidates = recommend_meals(
         health_goal=request.healthGoal,
         tags=request.tags,
         excluded_ingredients=request.excludedIngredients,
         keyword=request.keyword,
     )
-    # Keep the original response for older clients that have not opted into the
-    # natural-language recommendation flow yet.
+    ranked_pool, reused_previous_results = _build_refresh_pool(
+        safe_candidates,
+        exclude_meal_ids=request.excludeMealIds,
+        exclude_meal_names=request.excludeMealNames,
+        limit=limit,
+    )
+    response_message = REUSED_RESULTS_MESSAGE if reused_previous_results else ""
+
+    # Legacy clients still get the older array shape, but with the same limit
+    # and refresh de-duplication rules.
     if request.userTextPreference is None:
-        return candidates
+        return ranked_pool[:limit]
+
     try:
+        coarse_needs = ai_recommender.interpret_needs(
+            request.userTextPreference,
+            request.healthGoal,
+            request.tags,
+            request.excludedIngredients,
+        )
+        coarse_ranked = ai_recommender._rule_rank(ranked_pool, coarse_needs)
+        coarse_order = {item["mealId"]: index for index, item in enumerate(coarse_ranked)}
+        ai_candidates = sorted(
+            ranked_pool,
+            key=lambda meal: coarse_order.get(meal.id, len(coarse_order)),
+        )[:AI_CANDIDATE_LIMIT]
+
         ranked = ai_recommender.rank_meals(
             user_text_preference=request.userTextPreference,
             health_goal=request.healthGoal,
             selected_tags=request.tags,
             excluded_ingredients=request.excludedIngredients,
-            candidate_meals=candidates,
+            candidate_meals=ai_candidates,
             query_history=request.queryHistory,
         )
-        order = {item["mealId"]: index for index, item in enumerate(ranked["rankedMeals"])}
-        meals = sorted(candidates, key=lambda meal: order.get(meal.id, len(order)))
-        return RecommendResponse(**ranked, meals=meals, usedAiRanking=True)
+        limited_ranked = ranked["rankedMeals"][:limit]
+        return RecommendResponse(
+            interpretedNeeds=ranked["interpretedNeeds"],
+            rankedMeals=limited_ranked,
+            meals=_meals_for_ranked(limited_ranked, ai_candidates),
+            usedAiRanking=True,
+            fallbackUsed=False,
+            reusedPreviousResults=reused_previous_results,
+            message=response_message,
+        )
     except Exception:
         # Do not leak provider or upstream API errors to the client.
         fallback_needs = ai_recommender.interpret_needs(
-            request.userTextPreference, request.healthGoal, request.tags, request.excludedIngredients,
+            request.userTextPreference,
+            request.healthGoal,
+            request.tags,
+            request.excludedIngredients,
         )
-        fallback_ranked = ai_recommender._rule_rank(candidates, fallback_needs)
+        fallback_ranked = ai_recommender._rule_rank(ranked_pool, fallback_needs)[:limit]
         return RecommendResponse(
             interpretedNeeds=fallback_needs,
             rankedMeals=fallback_ranked,
-            meals=candidates,
+            meals=_meals_for_ranked(fallback_ranked, ranked_pool),
             usedAiRanking=False,
-            fallbackMessage="AI 推薦排序暫時不可用，已改用基本條件推薦。",
+            fallbackMessage=AI_FALLBACK_MESSAGE,
+            fallbackUsed=True,
+            reusedPreviousResults=reused_previous_results,
+            message=response_message,
         )
 
 
@@ -213,6 +236,86 @@ async def nearby_places(request: NearbyPlacesRequest) -> NearbyPlacesResponse:
         excluded_ingredients=request.excludedIngredients,
         radius_meters=request.radiusMeters,
     )
+
+
+def _meal_request_validation_detail(errors: list[dict[str, object]]) -> str:
+    for issue in errors:
+        location = ".".join(str(item) for item in issue.get("loc", []))
+        if "mealName" in location:
+            return "\u9910\u9ede\u540d\u7a31\u4e0d\u53ef\u70ba\u7a7a"
+        if "mainIngredients" in location:
+            return "\u4e3b\u8981\u98df\u6750\u4e0d\u53ef\u70ba\u7a7a"
+        if "estimatedCalories" in location:
+            return "\u71b1\u91cf\u4e0d\u53ef\u70ba\u8ca0\u6578"
+        if "sourceType" in location:
+            return "sourceType \u683c\u5f0f\u4e0d\u5408\u6cd5"
+        if "recommendationReason" in location:
+            return "\u63a8\u85a6\u7406\u7531\u4e0d\u53ef\u70ba\u7a7a"
+        if "tags" in location:
+            return "\u6a19\u7c64\u4e0d\u53ef\u70ba\u7a7a"
+        if "mealType" in location:
+            return "\u9910\u9ede\u985e\u578b\u4e0d\u53ef\u70ba\u7a7a"
+    return "\u9910\u9ede\u8cc7\u6599\u683c\u5f0f\u4e0d\u6b63\u78ba"
+
+
+def _recommendation_limit(value: int | None) -> int:
+    if value is None:
+        return DEFAULT_RECOMMENDATION_LIMIT
+    return max(1, min(MAX_RECOMMENDATION_LIMIT, int(value)))
+
+
+def _build_refresh_pool(
+    candidates: list[MealAnalysisResult],
+    *,
+    exclude_meal_ids: list[str],
+    exclude_meal_names: list[str],
+    limit: int,
+) -> tuple[list[MealAnalysisResult], bool]:
+    excluded_ids = {str(item).strip() for item in exclude_meal_ids if str(item).strip()}
+    excluded_names = {_normalize_meal_name(item) for item in exclude_meal_names if _normalize_meal_name(item)}
+    if not excluded_ids and not excluded_names:
+        return _dedupe_meals(candidates), False
+
+    fresh_candidates = [
+        meal
+        for meal in candidates
+        if meal.id not in excluded_ids and _normalize_meal_name(meal.mealName) not in excluded_names
+    ]
+    if len(fresh_candidates) >= limit:
+        return _dedupe_meals(fresh_candidates), False
+
+    return _dedupe_meals([*fresh_candidates, *candidates]), True
+
+
+def _normalize_meal_name(value: str) -> str:
+    return " ".join(str(value).strip().lower().split())
+
+
+def _dedupe_meals(meals: list[MealAnalysisResult]) -> list[MealAnalysisResult]:
+    seen_ids: set[str] = set()
+    seen_names: set[str] = set()
+    unique: list[MealAnalysisResult] = []
+    for meal in meals:
+        name_key = _normalize_meal_name(meal.mealName)
+        if meal.id in seen_ids or name_key in seen_names:
+            continue
+        seen_ids.add(meal.id)
+        seen_names.add(name_key)
+        unique.append(meal)
+    return unique
+
+
+def _meals_for_ranked(
+    ranked_meals: list[dict[str, object]],
+    candidates: list[MealAnalysisResult],
+) -> list[MealAnalysisResult]:
+    by_id = {meal.id: meal for meal in candidates}
+    meals: list[MealAnalysisResult] = []
+    for item in ranked_meals:
+        meal = by_id.get(str(item.get("mealId") or ""))
+        if meal:
+            meals.append(meal)
+    return meals
 
 
 def _parse_form_constraints(raw: str) -> list[str]:

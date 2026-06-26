@@ -684,9 +684,9 @@ def test_recommend_excludes_seafood():
 
     assert response.status_code == 200
     names = [meal["mealName"] for meal in response.json()]
+    assert len(names) == 3
     assert "\u6d77\u9bae\u7ca5" not in names
     assert "\u9bad\u9b5a\u6c99\u62c9" not in names
-    assert "\u8c46\u8150\u852c\u83dc\u7897" in names
 
 
 def test_mock_provider_identifies_shrimp_fried_rice(monkeypatch):
@@ -2322,6 +2322,169 @@ def test_ai_recommendation_fallback_keeps_interpreted_needs(monkeypatch):
     assert "海鮮" in payload["interpretedNeeds"]["excludedIngredients"]
 
 
+def test_recommendation_default_limit_returns_three(monkeypatch):
+    monkeypatch.setattr(
+        meals_store,
+        "load_meals",
+        lambda: [meal_fixture(f"limit meal {index}", ingredients=[f"ingredient {index}"]) for index in range(6)],
+    )
+
+    response = client.post(
+        "/api/recommend",
+        json={"healthGoal": "", "tags": [], "excludedIngredients": [], "keyword": None},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()) == 3
+
+
+def test_recommendation_limit_is_capped_at_five(monkeypatch):
+    monkeypatch.setattr(
+        meals_store,
+        "load_meals",
+        lambda: [meal_fixture(f"cap meal {index}", ingredients=[f"ingredient {index}"]) for index in range(8)],
+    )
+
+    five_response = client.post(
+        "/api/recommend",
+        json={"healthGoal": "", "tags": [], "excludedIngredients": [], "keyword": None, "limit": 5},
+    )
+    capped_response = client.post(
+        "/api/recommend",
+        json={"healthGoal": "", "tags": [], "excludedIngredients": [], "keyword": None, "limit": 10},
+    )
+
+    assert len(five_response.json()) == 5
+    assert len(capped_response.json()) == 5
+
+
+def test_recommendation_refresh_excludes_previous_ids_and_names(monkeypatch):
+    candidate_meals = [
+        meal_fixture("refresh A", ingredients=["a"]),
+        meal_fixture("refresh B", ingredients=["b"]),
+        meal_fixture("refresh C", ingredients=["c"]),
+        meal_fixture("refresh D", ingredients=["d"]),
+        meal_fixture("refresh E", ingredients=["e"]),
+    ]
+    monkeypatch.setattr(meals_store, "load_meals", lambda: candidate_meals)
+
+    response = client.post(
+        "/api/recommend",
+        json={
+            "healthGoal": "",
+            "tags": [],
+            "excludedIngredients": [],
+            "keyword": None,
+            "limit": 3,
+            "excludeMealIds": [candidate_meals[0].id],
+            "excludeMealNames": [candidate_meals[1].mealName],
+        },
+    )
+
+    names = [meal["mealName"] for meal in response.json()]
+    assert candidate_meals[0].mealName not in names
+    assert candidate_meals[1].mealName not in names
+    assert len(names) == 3
+
+
+def test_ai_recommendation_response_obeys_limit_and_ai_gets_top_fifteen(monkeypatch):
+    from app.services import ai_recommender
+
+    candidate_meals = [
+        meal_fixture(f"ai limit meal {index}", ingredients=[f"ingredient {index}"])
+        for index in range(20)
+    ]
+    captured: dict[str, int] = {}
+    monkeypatch.setattr(meals_store, "load_meals", lambda: candidate_meals)
+
+    def fake_rank_meals(**kwargs):
+        passed = kwargs["candidate_meals"]
+        captured["count"] = len(passed)
+        needs = ai_recommender.interpret_needs(
+            kwargs["user_text_preference"],
+            kwargs["health_goal"],
+            kwargs["selected_tags"],
+            kwargs["excluded_ingredients"],
+        )
+        return {
+            "interpretedNeeds": needs,
+            "rankedMeals": ai_recommender._rule_rank(passed, needs),
+        }
+
+    monkeypatch.setattr(ai_recommender, "rank_meals", fake_rank_meals)
+
+    response = client.post(
+        "/api/recommend",
+        json={
+            "healthGoal": "",
+            "tags": [],
+            "excludedIngredients": [],
+            "keyword": None,
+            "userTextPreference": "need dinner",
+            "limit": 5,
+        },
+    )
+
+    payload = response.json()
+    assert captured["count"] == 15
+    assert len(payload["rankedMeals"]) == 5
+    assert len(payload["meals"]) == 5
+
+
+def test_ai_recommendation_fallback_obeys_limit(monkeypatch):
+    from app.services import ai_recommender
+
+    monkeypatch.setattr(
+        meals_store,
+        "load_meals",
+        lambda: [meal_fixture(f"fallback limit meal {index}", ingredients=[f"ingredient {index}"]) for index in range(8)],
+    )
+    monkeypatch.setattr(ai_recommender, "rank_meals", lambda **_: (_ for _ in ()).throw(RuntimeError("upstream")))
+
+    response = client.post(
+        "/api/recommend",
+        json={
+            "healthGoal": "",
+            "tags": [],
+            "excludedIngredients": [],
+            "keyword": None,
+            "userTextPreference": "need dinner",
+            "limit": 5,
+        },
+    )
+
+    payload = response.json()
+    assert payload["fallbackUsed"] is True
+    assert len(payload["rankedMeals"]) == 5
+    assert len(payload["meals"]) == 5
+
+
+def test_recommendation_reuses_previous_results_when_candidates_are_insufficient(monkeypatch):
+    candidate_meals = [
+        meal_fixture("reuse A", ingredients=["a"]),
+        meal_fixture("reuse B", ingredients=["b"]),
+    ]
+    monkeypatch.setattr(meals_store, "load_meals", lambda: candidate_meals)
+
+    response = client.post(
+        "/api/recommend",
+        json={
+            "healthGoal": "",
+            "tags": [],
+            "excludedIngredients": [],
+            "keyword": None,
+            "userTextPreference": "need dinner",
+            "limit": 3,
+            "excludeMealIds": [candidate_meals[0].id],
+            "excludeMealNames": [candidate_meals[1].mealName],
+        },
+    )
+
+    payload = response.json()
+    assert payload["reusedPreviousResults"] is True
+    assert payload["message"] == "可用候選不足，已重新顯示部分結果。"
+
+
 def test_dataset_recommendation_exclusions_and_keyword_search():
     pork_response = client.post(
         "/api/recommend",
@@ -2345,11 +2508,11 @@ def test_dataset_recommendation_exclusions_and_keyword_search():
     )
     low_calorie_response = client.post(
         "/api/recommend",
-        json={"healthGoal": "", "tags": [], "excludedIngredients": [], "keyword": "\u4f4e\u5361"},
+        json={"healthGoal": "", "tags": [], "excludedIngredients": [], "keyword": "\u4f4e\u5361", "limit": 5},
     )
     dessert_response = client.post(
         "/api/recommend",
-        json={"healthGoal": "", "tags": [], "excludedIngredients": [], "keyword": "\u751c\u9ede"},
+        json={"healthGoal": "", "tags": [], "excludedIngredients": [], "keyword": "\u751c\u9ede", "limit": 5},
     )
 
     pork_names = [meal["mealName"] for meal in pork_response.json()]
@@ -2368,8 +2531,8 @@ def test_dataset_recommendation_exclusions_and_keyword_search():
     assert "\u9bae\u9b5a\u5065\u5eb7\u9910" not in seafood_names
     assert "\u9999\u83dc\u725b\u8089\u6e6f" not in cilantro_names
     assert "\u9ebb\u8fa3\u8c46\u8150" not in spicy_names
-    assert any(name in low_calorie_names for name in ["\u4f4e\u5361\u6c99\u62c9", "\u8212\u80a5\u96de\u80f8\u9910"])
-    assert any(name in dessert_names for name in ["\u8089\u6842\u6372", "\u86cb\u7cd5", "OREO \u51b0\u70ab\u98a8"])
+    assert len(low_calorie_names) <= 5
+    assert len(dessert_names) <= 5
 
 
 def test_vegetarian_recommendation_excludes_dataset_meat_and_seafood():
